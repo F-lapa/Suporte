@@ -790,17 +790,71 @@
         video.style.display = 'block'; video.style.background = '#000';
         div.appendChild(video);
       } else if (url && tipo === 'audio') {
+        const wrap = document.createElement('div');
+        wrap.style.minWidth = '220px';
+        wrap.style.width = '100%';
+
         if (isEncryptedFile && conversaAtual) {
           try {
             const resp = await fetch(url);
-            const dec = await descriptografarBlob(await resp.blob(), conversaAtual.id, 'audio/webm');
-            if (dec) url = URL.createObjectURL(dec);
-          } catch(e) {}
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const encBlob = await resp.blob();
+            // Detecta mime pela extensão no nome do arquivo
+            let mimeGuess = 'audio/webm';
+            const path = (msg.url_midia || '').toLowerCase();
+            if (path.includes('.m4a') || path.includes('.mp4')) mimeGuess = 'audio/mp4';
+            else if (path.includes('.mp3')) mimeGuess = 'audio/mpeg';
+            else if (path.includes('.ogg')) mimeGuess = 'audio/ogg';
+            else if (path.includes('.wav')) mimeGuess = 'audio/wav';
+            
+            let dec = await descriptografarBlob(encBlob, conversaAtual.id, mimeGuess);
+            if (!dec) dec = await descriptografarBlob(encBlob, conversaAtual.id, 'audio/webm');
+            if (!dec) dec = await descriptografarBlob(encBlob, conversaAtual.id, 'audio/mp4');
+            if (dec) {
+              url = URL.createObjectURL(dec);
+            } else {
+              throw new Error('Falha na descriptografia');
+            }
+          } catch(e) {
+            console.error('Erro audio enc:', e);
+            const a = document.createElement('a');
+            a.href = msg.url_midia; a.target = '_blank';
+            a.style.color = '#60a5fa'; a.textContent = '🎤 Baixar áudio';
+            wrap.appendChild(a);
+            div.appendChild(wrap);
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            const horaEl = document.createElement('span');
+            horaEl.className = 'hora'; horaEl.textContent = hora;
+            meta.appendChild(horaEl);
+            if (msg.remetente === 'agente' && !isCliente) {
+              const checks = document.createElement('span');
+              checks.className = 'checks' + (msg.lida ? ' lida' : '');
+              checks.textContent = msg.lida ? '✓✓' : '✓';
+              meta.appendChild(checks);
+            }
+            div.appendChild(meta);
+            document.getElementById('messages').appendChild(div);
+            return;
+          }
         }
+
         const audio = document.createElement('audio');
-        audio.src = url; audio.controls = true; audio.preload = 'auto';
-        audio.style.width = '100%'; audio.style.minWidth = '200px';
-        div.appendChild(audio);
+        audio.src = url;
+        audio.controls = true;
+        audio.preload = 'auto';
+        audio.playsInline = true;
+        audio.style.width = '100%';
+        audio.style.minWidth = '200px';
+        audio.onerror = function() {
+          const a = document.createElement('a');
+          a.href = url; a.target = '_blank';
+          a.style.color = '#60a5fa'; a.textContent = '🎤 Abrir áudio';
+          wrap.innerHTML = '';
+          wrap.appendChild(a);
+        };
+        wrap.appendChild(audio);
+        div.appendChild(wrap);
       } else if (url) {
         const a = document.createElement('a');
         a.className = 'arquivo'; a.href = url; a.target = '_blank';
@@ -940,30 +994,58 @@
     }
     async function iniciarGravacao() {
       if (!conversaAtual) return mostrarToast('Abra uma conversa primeiro', true);
+      
+      // Verifica suporte
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        mostrarToast('Seu navegador não suporta gravação. Use o botão 🎵', true);
+        return;
+      }
+      if (typeof MediaRecorder === 'undefined') {
+        mostrarToast('Gravação não disponível neste navegador. Use o botão 🎵', true);
+        return;
+      }
+
       try {
         mostrarToast('Pedindo permissão do microfone...');
-        streamAudio = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        streamAudio = await navigator.mediaDevices.getUserMedia({ 
+          audio: true
+        });
         audioChunks = [];
         const options = {};
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) options.mimeType = 'audio/webm;codecs=opus';
-        else if (MediaRecorder.isTypeSupported('audio/mp4')) options.mimeType = 'audio/mp4';
+        // iOS prefere mp4/aac; Android prefere webm
+        if (MediaRecorder.isTypeSupported('audio/mp4')) options.mimeType = 'audio/mp4';
+        else if (MediaRecorder.isTypeSupported('audio/aac')) options.mimeType = 'audio/aac';
+        else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) options.mimeType = 'audio/webm;codecs=opus';
+        else if (MediaRecorder.isTypeSupported('audio/webm')) options.mimeType = 'audio/webm';
+        
         mediaRecorder = new MediaRecorder(streamAudio, options);
         mediaRecorder.ondataavailable = e => { if (e.data?.size > 0) audioChunks.push(e.data); };
         mediaRecorder.onstop = async () => {
-          const mime = mediaRecorder.mimeType || 'audio/webm';
+          const mime = mediaRecorder.mimeType || options.mimeType || 'audio/webm';
           const blob = new Blob(audioChunks, { type: mime });
           if (streamAudio) { streamAudio.getTracks().forEach(t => t.stop()); streamAudio = null; }
-          if (blob.size < 1000) return mostrarToast('Áudio muito curto', true);
+          if (blob.size < 500) return mostrarToast('Áudio muito curto, tente de novo', true);
           await enviarBlobAudio(blob, mime);
         };
-        mediaRecorder.start(250);
+        mediaRecorder.onerror = (e) => {
+          console.error('MediaRecorder error', e);
+          mostrarToast('Erro na gravação', true);
+          pararGravacao();
+        };
+        mediaRecorder.start(200);
         gravando = true;
         const btn = document.getElementById('btnAudio');
         if (btn) { btn.classList.add('gravando'); btn.textContent = '⏹'; }
         mostrarToast('🔴 GRAVANDO — toque de novo para enviar');
       } catch (err) {
-        if (err.name === 'NotAllowedError') mostrarToast('Permissão de microfone negada', true);
-        else mostrarToast('Erro: ' + err.message, true);
+        console.error(err);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          mostrarToast('Permissão negada. Ative o microfone nas configurações do site.', true);
+        } else if (err.name === 'NotFoundError') {
+          mostrarToast('Nenhum microfone encontrado', true);
+        } else {
+          mostrarToast('Erro: ' + (err.message || err.name) + ' — tente o botão 🎵', true);
+        }
       }
     }
     function pararGravacao() {
