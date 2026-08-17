@@ -150,6 +150,8 @@
       display: flex;
       flex-direction: column;
       background: #0b141a;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .chat-vazio {
@@ -223,6 +225,7 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+      min-height: 0;
     }
 
     .msg {
@@ -269,6 +272,9 @@
       align-items: center;
       border-top: 1px solid #2a3942;
       flex-shrink: 0;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
     }
 
     #messageInput {
@@ -437,7 +443,7 @@
         <p>Selecione um cliente à esquerda<br>ou crie um novo para começar.</p>
       </div>
 
-      <div id="chatAtivo" style="display:none; flex-direction:column; height:100%;">
+      <div id="chatAtivo" style="display:none; flex-direction:column; height:100%; flex:1; min-height:0;">
         <div class="chat-header">
           <button class="btn-voltar" onclick="fecharChatMobile()">←</button>
           <div class="avatar" id="chatAvatar">?</div>
@@ -603,7 +609,12 @@
       }
 
       document.getElementById('chatVazio').style.display = 'none';
-      document.getElementById('chatAtivo').style.display = 'flex';
+      const chatAtivo = document.getElementById('chatAtivo');
+      chatAtivo.style.display = 'flex';
+      chatAtivo.style.flexDirection = 'column';
+      chatAtivo.style.height = '100%';
+      chatAtivo.style.flex = '1';
+      chatAtivo.style.minHeight = '0';
       
       document.getElementById('chatNome').textContent = conversaAtual.nome;
       document.getElementById('chatAvatar').textContent = conversaAtual.nome.charAt(0).toUpperCase();
@@ -613,6 +624,11 @@
 
       await carregarMensagens();
       escutarMensagens();
+      
+      setTimeout(() => {
+        const input = document.getElementById('messageInput');
+        if (input) input.focus();
+      }, 200);
     }
 
     async function abrirConversaPorId(id) {
@@ -623,22 +639,43 @@
         .single();
 
       if (error || !data) {
-        document.getElementById('chatArea').innerHTML = '<div class="chat-vazio"><h2>Conversa não encontrada</h2></div>';
+        console.error('Erro ao buscar conversa:', error);
+        document.getElementById('chatArea').innerHTML = '<div class="chat-vazio"><h2>Conversa não encontrada</h2><p style="margin-top:10px;color:#8696a0">Verifique se o link está correto.</p></div>';
         return;
       }
 
       conversas = [data];
       conversaAtual = data;
       
+      // Esconde sidebar e mostra chat
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) sidebar.style.display = 'none';
+      
       document.getElementById('chatVazio').style.display = 'none';
-      document.getElementById('chatAtivo').style.display = 'flex';
+      const chatAtivo = document.getElementById('chatAtivo');
+      chatAtivo.style.display = 'flex';
+      chatAtivo.style.flexDirection = 'column';
+      chatAtivo.style.height = '100%';
+      chatAtivo.style.flex = '1';
+      chatAtivo.style.minHeight = '0';
+      
       document.getElementById('chatNome').textContent = data.nome;
       document.getElementById('chatAvatar').textContent = data.nome.charAt(0).toUpperCase();
       
-      document.querySelector('.btn-copiar-link').style.display = 'none';
+      const btnCopiar = document.querySelector('.btn-copiar-link');
+      if (btnCopiar) btnCopiar.style.display = 'none';
+
+      // Mobile
+      document.getElementById('app').classList.add('chat-aberto');
 
       await carregarMensagens();
       escutarMensagens();
+      
+      // Foca no input
+      setTimeout(() => {
+        const input = document.getElementById('messageInput');
+        if (input) input.focus();
+      }, 300);
     }
 
     function fecharChatMobile() {
