@@ -447,6 +447,8 @@
   <script>
     const SUPABASE_URL = 'https://hthcmhbcgmwprhgubiuy.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_Z_4elpCD5ygI-SV_2ljJug_gHW0ipa2';
+    // chave API (ofuscada)
+    const GEMINI_KEY = atob('QVEuQWI4Uk42S2JXaHRTeEVEWFd3aE9aSXdRUlVJZEN6cjJ6YnZYTGFFcjNzMlcxaDdDM2c=');
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const SECRET = 'AtendimentoSecreto2026!';
 
@@ -858,33 +860,56 @@
           });
         }
 
-        // Chama a Edge Function direto (mais compatível)
-        const fnUrl = SUPABASE_URL + '/functions/v1/bot-suporte';
-        const resp = await fetch(fnUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-            'apikey': SUPABASE_ANON_KEY
-          },
-          body: JSON.stringify({ mensagens: historico })
-        });
+        if (!GEMINI_KEY || GEMINI_KEY === 'COLE_SUA_CHAVE_AQUI') {
+          toast('Configure a chave GEMINI_KEY no index.html', true);
+          return;
+        }
 
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) {
-          console.error('Bot error:', resp.status, data);
-          toast('Bot indisponível: ' + (data?.error || data?.message || resp.status), true);
-          return;
+        const systemPrompt = `Você é o assistente de suporte IPTV da empresa.
+Fale sempre em português do Brasil, de forma clara, educada e objetiva.
+Ajude com: instalação, buffer, tela preta, login, lista, renovação e configuração.
+Respostas curtas (2 a 5 frases). Não invente preços. Se não souber, diga que vai chamar um atendente humano.
+Se o cliente pedir atendente/humano, diga que já está chamando o suporte.`;
+
+        const contents = historico.slice(-12).map(m => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.text }]
+        }));
+        if (!contents.length) contents.push({ role: 'user', parts: [{ text: 'Oi' }] });
+
+        const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+        let resposta = null;
+        let lastErr = null;
+
+        for (const model of models) {
+          try {
+            const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + GEMINI_KEY;
+            const resp = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                system_instruction: { parts: [{ text: systemPrompt }] },
+                contents,
+                generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
+              })
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+              lastErr = data?.error?.message || ('HTTP ' + resp.status);
+              console.warn('Modelo', model, lastErr);
+              continue;
+            }
+            resposta = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || null;
+            if (resposta) break;
+          } catch (e) {
+            lastErr = String(e);
+            console.warn('Modelo', model, e);
+          }
         }
-        if (data?.error) {
-          console.error('Bot API:', data.error);
-          toast('Erro no bot: ' + data.error, true);
-          return;
-        }
-        const resposta = data?.resposta;
+
         if (!resposta) {
-          console.error('Sem resposta do bot', data);
-          toast('Bot sem resposta', true);
+          console.error('Bot falhou:', lastErr);
+          toast('Bot falhou: ' + (lastErr || 'sem resposta'), true);
           return;
         }
 
