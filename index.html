@@ -395,6 +395,7 @@
             <div class="status" id="status">Offline</div>
           </div>
           <div class="head-btns">
+            <button class="hbtn" id="btnBot" onclick="toggleBot()" style="display:none">🤖 Bot</button>
             <button class="hbtn" id="btnNotas" onclick="toggleNotas()">📝 Notas</button>
             <button class="hbtn" id="btnLink" onclick="copiarLink()">🔗 Link</button>
           </div>
@@ -663,6 +664,7 @@
       render(document.getElementById('busca')?.value || '');
       const seen = isCli ? atual.last_seen_agente : atual.last_seen_cliente;
       setStatus(seen);
+      if (!isCli) updateBotBtn();
       setTimeout(() => document.getElementById('inp')?.focus(), 150);
     }
 
@@ -814,11 +816,102 @@
       const from = isCli ? 'cliente' : 'agente';
       input.value = ''; document.getElementById('send').disabled = true;
       let final = t;
-      if (from === 'agente') { try { final = await enc(t, atual.id); } catch { toast('Erro crypto', true); document.getElementById('send').disabled = false; return; } }
+      if (from === 'agente') {
+        try { final = await enc(t, atual.id); } catch { toast('Erro crypto', true); document.getElementById('send').disabled = false; return; }
+        // Se admin responde, assume atendimento (desliga bot)
+        await sb.from('conversas').update({ atendente_assumiu: true, bot_ativo: false, updated_at: new Date().toISOString() }).eq('id', atual.id);
+        atual.atendente_assumiu = true; atual.bot_ativo = false;
+        updateBotBtn();
+      }
       const { error } = await sb.from('mensagens').insert([{ conversa_id: atual.id, texto: final, remetente: from, tipo: 'texto', lida: false }]);
       await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
       document.getElementById('send').disabled = false; input.focus();
-      if (error) toast(error.message, true);
+      if (error) { toast(error.message, true); return; }
+
+      // Cliente enviou → chama o bot se estiver ativo
+      if (from === 'cliente') {
+        await chamarBot();
+      }
+    }
+
+    async function chamarBot() {
+      if (!atual || !isCli) return;
+      // Recarrega flags
+      const { data: conv } = await sb.from('conversas').select('bot_ativo, atendente_assumiu').eq('id', atual.id).single();
+      if (!conv || conv.atendente_assumiu || conv.bot_ativo === false) return;
+
+      try {
+        // Histórico recente
+        const { data: msgs } = await sb.from('mensagens').select('texto, remetente, tipo')
+          .eq('conversa_id', atual.id).eq('tipo', 'texto')
+          .order('created_at', { ascending: true }).limit(20);
+
+        const historico = [];
+        for (const m of (msgs || [])) {
+          let txt = m.texto || '';
+          if (txt.startsWith('enc:') && atual) txt = await dec(txt, atual.id);
+          if (!txt || txt === '[criptografado]') continue;
+          historico.push({
+            role: m.remetente === 'cliente' ? 'user' : 'assistant',
+            text: txt
+          });
+        }
+
+        const { data, error } = await sb.functions.invoke('bot-suporte', {
+          body: { mensagens: historico }
+        });
+
+        if (error) {
+          console.error('Bot error:', error);
+          return;
+        }
+        const resposta = data?.resposta;
+        if (!resposta) return;
+
+        // Insere resposta do bot como agente (sem criptografia para o bot, ou com)
+        let textoBot = resposta;
+        try { textoBot = await enc(resposta, atual.id); } catch {}
+
+        await sb.from('mensagens').insert([{
+          conversa_id: atual.id,
+          texto: textoBot,
+          remetente: 'agente',
+          tipo: 'texto',
+          lida: false
+        }]);
+        await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
+      } catch (e) {
+        console.error('chamarBot', e);
+      }
+    }
+
+    function updateBotBtn() {
+      const btn = document.getElementById('btnBot');
+      if (!btn || isCli) return;
+      btn.style.display = 'inline-block';
+      if (atual && atual.atendente_assumiu) {
+        btn.textContent = '🤖 Reativar bot';
+        btn.classList.add('on');
+      } else {
+        btn.textContent = '👤 Assumir atendimento';
+        btn.classList.remove('on');
+      }
+    }
+
+    async function toggleBot() {
+      if (!atual || isCli) return;
+      if (atual.atendente_assumiu) {
+        // Reativar bot
+        await sb.from('conversas').update({ atendente_assumiu: false, bot_ativo: true }).eq('id', atual.id);
+        atual.atendente_assumiu = false; atual.bot_ativo = true;
+        toast('Bot reativado');
+      } else {
+        // Assumir
+        await sb.from('conversas').update({ atendente_assumiu: true, bot_ativo: false }).eq('id', atual.id);
+        atual.atendente_assumiu = true; atual.bot_ativo = false;
+        toast('Você assumiu o atendimento');
+      }
+      updateBotBtn();
     }
 
     function pick(tipo) {
