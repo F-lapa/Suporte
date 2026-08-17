@@ -2,435 +2,207 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Painel de Atendimento</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background: #0b141a;
       color: #e9edef;
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
     }
-
-    .app {
-      display: flex;
-      height: 100vh;
-    }
-
+    .app { display: flex; height: 100%; }
     .sidebar {
-      width: 340px;
-      background: #111b21;
-      border-right: 1px solid #2a3942;
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
+      width: 340px; background: #111b21; border-right: 1px solid #2a3942;
+      display: flex; flex-direction: column; flex-shrink: 0;
     }
-
     .sidebar-header {
-      background: #202c33;
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      background: #202c33; padding: 14px 16px;
+      display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid #2a3942;
     }
-
-    .sidebar-header h1 {
-      font-size: 17px;
-      font-weight: 600;
-    }
-
+    .sidebar-header h1 { font-size: 17px; font-weight: 600; }
     .btn-novo {
-      background: #00a884;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s;
+      background: #00a884; color: white; border: none;
+      padding: 8px 14px; border-radius: 6px; font-size: 13px;
+      font-weight: 500; cursor: pointer;
     }
-
     .btn-novo:hover { background: #008f72; }
-
-    .search-box {
-      padding: 10px 12px;
-      background: #111b21;
-    }
-
+    .search-box { padding: 10px 12px; }
     .search-box input {
-      width: 100%;
-      background: #202c33;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: #e9edef;
-      font-size: 14px;
-      outline: none;
+      width: 100%; background: #202c33; border: none; border-radius: 8px;
+      padding: 10px 14px; color: #e9edef; font-size: 14px; outline: none;
     }
-
     .search-box input::placeholder { color: #8696a0; }
-
-    .lista-clientes {
-      flex: 1;
-      overflow-y: auto;
-    }
-
+    .lista-clientes { flex: 1; overflow-y: auto; }
     .cliente-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      cursor: pointer;
-      transition: background 0.15s;
-      border-bottom: 1px solid #1e2a32;
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #1e2a32;
     }
-
     .cliente-item:hover { background: #202c33; }
     .cliente-item.ativo { background: #2a3942; }
-
     .avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: #00a884;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      font-weight: 600;
-      color: white;
-      flex-shrink: 0;
+      width: 48px; height: 48px; border-radius: 50%; background: #00a884;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 600; color: white; flex-shrink: 0;
       text-transform: uppercase;
     }
-
-    .cliente-info {
-      flex: 1;
-      min-width: 0;
-    }
-
+    .cliente-info { flex: 1; min-width: 0; }
     .cliente-nome {
-      font-size: 15px;
-      font-weight: 500;
-      margin-bottom: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 15px; font-weight: 500; margin-bottom: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-
     .cliente-preview {
-      font-size: 13px;
-      color: #8696a0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 13px; color: #8696a0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-
-    .cliente-hora {
-      font-size: 12px;
-      color: #8696a0;
-      flex-shrink: 0;
-    }
-
+    .cliente-hora { font-size: 12px; color: #8696a0; flex-shrink: 0; }
     .vazio-lista {
-      padding: 40px 20px;
-      text-align: center;
-      color: #8696a0;
-      font-size: 14px;
-      line-height: 1.5;
+      padding: 40px 20px; text-align: center; color: #8696a0;
+      font-size: 14px; line-height: 1.5;
     }
-
     .chat-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: #0b141a;
-      min-height: 0;
-      overflow: hidden;
+      flex: 1; display: flex; flex-direction: column;
+      background: #0b141a; min-height: 0; overflow: hidden;
     }
-
     .chat-vazio {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #8696a0;
-      text-align: center;
-      padding: 40px;
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #8696a0; text-align: center; padding: 40px;
     }
-
-    .chat-vazio .icone {
-      font-size: 64px;
-      margin-bottom: 16px;
-      opacity: 0.5;
-    }
-
-    .chat-vazio h2 {
-      font-size: 20px;
-      font-weight: 400;
-      color: #e9edef;
-      margin-bottom: 8px;
-    }
-
+    .chat-vazio .icone { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
+    .chat-vazio h2 { font-size: 20px; font-weight: 400; color: #e9edef; margin-bottom: 8px; }
     .chat-header {
-      background: #202c33;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid #2a3942;
-      flex-shrink: 0;
+      background: #202c33; padding: 12px 16px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid #2a3942; flex-shrink: 0;
     }
-
-    .chat-header .avatar {
-      width: 40px;
-      height: 40px;
-      font-size: 15px;
-    }
-
-    .chat-header-info h2 {
-      font-size: 15px;
-      font-weight: 500;
-    }
-
-    .chat-header-info span {
-      font-size: 12px;
-      color: #00a884;
-    }
-
+    .chat-header .avatar { width: 40px; height: 40px; font-size: 15px; }
+    .chat-header-info h2 { font-size: 15px; font-weight: 500; }
+    .chat-header-info span { font-size: 12px; color: #00a884; }
     .btn-copiar-link {
-      margin-left: auto;
-      background: transparent;
-      border: 1px solid #3b4a54;
-      color: #e9edef;
-      padding: 7px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: background 0.2s;
+      margin-left: auto; background: transparent; border: 1px solid #3b4a54;
+      color: #e9edef; padding: 7px 12px; border-radius: 6px;
+      font-size: 12px; cursor: pointer;
     }
-
     .btn-copiar-link:hover { background: #2a3942; }
-
     #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-height: 0;
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 8px; min-height: 0;
     }
-
     .msg {
-      max-width: 65%;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 14.5px;
-      line-height: 1.4;
-      word-wrap: break-word;
+      max-width: 75%; padding: 8px 12px; border-radius: 8px;
+      font-size: 14.5px; line-height: 1.4; word-wrap: break-word;
       animation: fadeIn 0.2s ease;
     }
-
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     .msg.eu {
-      background: #005c4b;
-      align-self: flex-end;
-      border-bottom-right-radius: 2px;
+      background: #005c4b; align-self: flex-end; border-bottom-right-radius: 2px;
     }
-
     .msg.outro {
-      background: #202c33;
-      align-self: flex-start;
-      border-bottom-left-radius: 2px;
+      background: #202c33; align-self: flex-start; border-bottom-left-radius: 2px;
     }
-
     .msg .hora {
-      font-size: 11px;
-      color: rgba(233, 237, 239, 0.55);
-      margin-top: 3px;
-      text-align: right;
+      font-size: 11px; color: rgba(233,237,239,0.55);
+      margin-top: 4px; text-align: right;
     }
-
     .msg.outro .hora { text-align: left; }
-
+    .msg img, .msg video {
+      max-width: 100%; border-radius: 6px; display: block; margin-bottom: 4px;
+    }
+    .msg audio { width: 220px; margin: 4px 0; }
+    .msg .arquivo {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; background: rgba(0,0,0,0.2);
+      border-radius: 6px; margin-bottom: 4px; text-decoration: none; color: #e9edef;
+    }
+    .msg .arquivo:hover { background: rgba(0,0,0,0.3); }
     .input-area {
-      background: #202c33;
-      padding: 10px 14px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      border-top: 1px solid #2a3942;
-      flex-shrink: 0;
-      position: sticky;
-      bottom: 0;
-      z-index: 10;
+      background: #202c33; padding: 8px 10px;
+      display: flex; gap: 6px; align-items: center;
+      border-top: 1px solid #2a3942; flex-shrink: 0;
     }
-
+    .btn-midia {
+      background: transparent; border: none; color: #8696a0;
+      font-size: 22px; cursor: pointer; padding: 6px; line-height: 1;
+      flex-shrink: 0;
+    }
+    .btn-midia:hover { color: #00a884; }
     #messageInput {
-      flex: 1;
-      background: #2a3942;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 16px;
-      color: #e9edef;
-      font-size: 15px;
-      outline: none;
+      flex: 1; background: #2a3942; border: none; border-radius: 8px;
+      padding: 11px 14px; color: #e9edef; font-size: 15px; outline: none;
     }
-
     #messageInput::placeholder { color: #8696a0; }
-
     #sendBtn {
-      background: #00a884;
-      border: none;
-      width: 46px;
-      height: 46px;
-      border-radius: 50%;
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
-      flex-shrink: 0;
+      background: #00a884; border: none; width: 44px; height: 44px;
+      border-radius: 50%; color: white; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-
     #sendBtn:hover { background: #008f72; }
     #sendBtn:disabled { background: #3b4a54; cursor: not-allowed; }
-
     .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center; z-index: 100;
     }
-
     .modal-overlay.ativo { display: flex; }
-
     .modal {
-      background: #202c33;
-      border-radius: 12px;
-      padding: 24px;
-      width: 90%;
-      max-width: 380px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      background: #202c33; border-radius: 12px; padding: 24px;
+      width: 90%; max-width: 380px;
     }
-
-    .modal h3 {
-      font-size: 17px;
-      margin-bottom: 16px;
-      font-weight: 500;
-    }
-
+    .modal h3 { font-size: 17px; margin-bottom: 16px; font-weight: 500; }
     .modal input {
-      width: 100%;
-      background: #2a3942;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 14px;
-      color: #e9edef;
-      font-size: 15px;
-      outline: none;
-      margin-bottom: 16px;
+      width: 100%; background: #2a3942; border: none; border-radius: 8px;
+      padding: 12px 14px; color: #e9edef; font-size: 15px; outline: none; margin-bottom: 16px;
     }
-
-    .modal-botoes {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
-
+    .modal-botoes { display: flex; gap: 10px; justify-content: flex-end; }
     .modal-botoes button {
-      padding: 9px 18px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
+      padding: 9px 18px; border-radius: 6px; font-size: 14px;
+      font-weight: 500; cursor: pointer; border: none;
     }
-
-    .btn-cancelar {
-      background: transparent;
-      color: #8696a0;
-    }
-
-    .btn-cancelar:hover { color: #e9edef; }
-
-    .btn-criar {
-      background: #00a884;
-      color: white;
-    }
-
-    .btn-criar:hover { background: #008f72; }
-
+    .btn-cancelar { background: transparent; color: #8696a0; }
+    .btn-criar { background: #00a884; color: white; }
     .toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #00a884;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 200;
-      animation: slideUp 0.3s ease;
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: #00a884; color: white; padding: 10px 20px;
+      border-radius: 8px; font-size: 14px; z-index: 200;
     }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translate(-50%, 15px); }
-      to { opacity: 1; transform: translate(-50%, 0); }
+    .uploading {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: #202c33; color: #e9edef; padding: 10px 20px;
+      border-radius: 8px; font-size: 14px; z-index: 200;
+      border: 1px solid #3b4a54;
     }
-
     @media (max-width: 700px) {
       .sidebar { width: 100%; }
       .chat-area { display: none; }
       .app.chat-aberto .sidebar { display: none; }
       .app.chat-aberto .chat-area { display: flex; }
     }
-
     .btn-voltar {
-      display: none;
-      background: transparent;
-      border: none;
-      color: #e9edef;
-      font-size: 20px;
-      cursor: pointer;
-      margin-right: 4px;
+      display: none; background: transparent; border: none;
+      color: #e9edef; font-size: 20px; cursor: pointer; margin-right: 4px;
     }
-
-    @media (max-width: 700px) {
-      .btn-voltar { display: block; }
-    }
+    @media (max-width: 700px) { .btn-voltar { display: block; } }
+    input[type="file"] { display: none; }
   </style>
 </head>
 <body>
-
   <div class="app" id="app">
     <div class="sidebar">
       <div class="sidebar-header">
         <h1>Atendimento</h1>
         <button class="btn-novo" onclick="abrirModalNovo()">+ Novo</button>
       </div>
-
       <div class="search-box">
         <input type="text" id="busca" placeholder="Buscar cliente..." oninput="filtrarClientes()">
       </div>
-
       <div class="lista-clientes" id="listaClientes">
         <div class="vazio-lista">Carregando...</div>
       </div>
@@ -449,14 +221,24 @@
           <div class="avatar" id="chatAvatar">?</div>
           <div class="chat-header-info">
             <h2 id="chatNome">Cliente</h2>
-            <span id="chatStatus">Online</span>
+            <span>Online</span>
           </div>
-          <button class="btn-copiar-link" onclick="copiarLinkCliente()">📋 Copiar link do cliente</button>
+          <button class="btn-copiar-link" onclick="copiarLinkCliente()">📋 Copiar link</button>
         </div>
 
         <div id="messages"></div>
 
         <div class="input-area">
+          <button class="btn-midia" onclick="document.getElementById('inputFoto').click()" title="Foto">📷</button>
+          <button class="btn-midia" onclick="document.getElementById('inputVideo').click()" title="Vídeo">🎬</button>
+          <button class="btn-midia" onclick="document.getElementById('inputArquivo').click()" title="Arquivo">📎</button>
+          <button class="btn-midia" onclick="document.getElementById('inputAudio').click()" title="Áudio">🎤</button>
+          
+          <input type="file" id="inputFoto" accept="image/*" onchange="enviarMidia(this, 'imagem')">
+          <input type="file" id="inputVideo" accept="video/*" onchange="enviarMidia(this, 'video')">
+          <input type="file" id="inputArquivo" accept="*/*" onchange="enviarMidia(this, 'arquivo')">
+          <input type="file" id="inputAudio" accept="audio/*" onchange="enviarMidia(this, 'audio')">
+
           <input type="text" id="messageInput" placeholder="Digite uma mensagem..." autocomplete="off">
           <button id="sendBtn" onclick="enviarMensagem()">➤</button>
         </div>
@@ -467,7 +249,7 @@
   <div class="modal-overlay" id="modalNovo">
     <div class="modal">
       <h3>Novo Cliente</h3>
-      <input type="text" id="inputNome" placeholder="Nome do cliente" maxlength="50" autofocus>
+      <input type="text" id="inputNome" placeholder="Nome do cliente" maxlength="50">
       <div class="modal-botoes">
         <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
         <button class="btn-criar" onclick="criarCliente()">Criar</button>
@@ -478,7 +260,6 @@
   <script>
     const SUPABASE_URL = 'https://hthcmhbcgmwprhgubiuy.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_Z_4elpCD5ygI-SV_2ljJug_gHW0ipa2';
-
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let conversas = [];
@@ -490,7 +271,6 @@
       const params = new URLSearchParams(window.location.search);
       const sala = params.get('sala');
       isCliente = params.get('cliente') === '1';
-
       if (sala && isCliente) {
         document.querySelector('.sidebar').style.display = 'none';
         abrirConversaPorId(sala);
@@ -501,54 +281,37 @@
 
     async function carregarConversas() {
       const { data, error } = await supabaseClient
-        .from('conversas')
-        .select('*')
-        .order('updated_at', { ascending: false });
-
+        .from('conversas').select('*').order('updated_at', { ascending: false });
       if (error) {
-        console.error(error);
-        document.getElementById('listaClientes').innerHTML = '<div class="vazio-lista">Erro ao carregar. Verifique o Supabase.</div>';
+        document.getElementById('listaClientes').innerHTML = '<div class="vazio-lista">Erro ao carregar</div>';
         return;
       }
-
       conversas = data || [];
       renderizarLista();
     }
 
     function renderizarLista(filtro = '') {
       const container = document.getElementById('listaClientes');
-      
-      let lista = conversas;
-      if (filtro) {
-        lista = conversas.filter(c => c.nome.toLowerCase().includes(filtro.toLowerCase()));
-      }
-
+      let lista = filtro ? conversas.filter(c => c.nome.toLowerCase().includes(filtro.toLowerCase())) : conversas;
       if (lista.length === 0) {
-        container.innerHTML = '<div class="vazio-lista">Nenhum cliente ainda.<br>Clique em "+ Novo" para começar.</div>';
+        container.innerHTML = '<div class="vazio-lista">Nenhum cliente ainda.<br>Clique em "+ Novo".</div>';
         return;
       }
-
       container.innerHTML = lista.map(c => {
-        const inicial = c.nome.charAt(0).toUpperCase();
         const ativo = conversaAtual && conversaAtual.id === c.id ? 'ativo' : '';
-        const hora = formatarHora(c.updated_at);
-
-        return `
-          <div class="cliente-item ${ativo}" onclick="abrirConversa('${c.id}')">
-            <div class="avatar">${inicial}</div>
-            <div class="cliente-info">
-              <div class="cliente-nome">${escapeHtml(c.nome)}</div>
-              <div class="cliente-preview">Clique para abrir</div>
-            </div>
-            <div class="cliente-hora">${hora}</div>
+        return `<div class="cliente-item ${ativo}" onclick="abrirConversa('${c.id}')">
+          <div class="avatar">${c.nome.charAt(0).toUpperCase()}</div>
+          <div class="cliente-info">
+            <div class="cliente-nome">${escapeHtml(c.nome)}</div>
+            <div class="cliente-preview">Clique para abrir</div>
           </div>
-        `;
+          <div class="cliente-hora">${formatarHora(c.updated_at)}</div>
+        </div>`;
       }).join('');
     }
 
     function filtrarClientes() {
-      const termo = document.getElementById('busca').value;
-      renderizarLista(termo);
+      renderizarLista(document.getElementById('busca').value);
     }
 
     function abrirModalNovo() {
@@ -556,126 +319,69 @@
       document.getElementById('inputNome').value = '';
       setTimeout(() => document.getElementById('inputNome').focus(), 100);
     }
-
     function fecharModal() {
       document.getElementById('modalNovo').classList.remove('ativo');
     }
 
     async function criarCliente() {
       const nome = document.getElementById('inputNome').value.trim();
-      if (!nome) {
-        alert('Digite o nome do cliente');
-        return;
-      }
-
+      if (!nome) return alert('Digite o nome do cliente');
       const id = Math.random().toString(36).substring(2, 10) + Date.now().toString(36).slice(-4);
-
-      const { error } = await supabaseClient
-        .from('conversas')
-        .insert([{ id, nome }]);
-
-      if (error) {
-        alert('Erro ao criar: ' + error.message);
-        console.error(error);
-        return;
-      }
-
+      const { error } = await supabaseClient.from('conversas').insert([{ id, nome }]);
+      if (error) return alert('Erro: ' + error.message);
       fecharModal();
       await carregarConversas();
       abrirConversa(id);
       mostrarToast('Cliente criado!');
     }
 
-    document.getElementById('inputNome').addEventListener('keypress', (e) => {
+    document.getElementById('inputNome').addEventListener('keypress', e => {
       if (e.key === 'Enter') criarCliente();
     });
 
     async function abrirConversa(id) {
-      const conversa = conversas.find(c => c.id === id);
+      let conversa = conversas.find(c => c.id === id);
       if (!conversa) {
-        const { data } = await supabaseClient
-          .from('conversas')
-          .select('*')
-          .eq('id', id)
-          .single();
-        
-        if (!data) {
-          alert('Conversa não encontrada');
-          return;
-        }
+        const { data } = await supabaseClient.from('conversas').select('*').eq('id', id).single();
+        if (!data) return alert('Conversa não encontrada');
         conversaAtual = data;
       } else {
         conversaAtual = conversa;
       }
-
-      document.getElementById('chatVazio').style.display = 'none';
-      const chatAtivo = document.getElementById('chatAtivo');
-      chatAtivo.style.display = 'flex';
-      chatAtivo.style.flexDirection = 'column';
-      chatAtivo.style.height = '100%';
-      chatAtivo.style.flex = '1';
-      chatAtivo.style.minHeight = '0';
-      
-      document.getElementById('chatNome').textContent = conversaAtual.nome;
-      document.getElementById('chatAvatar').textContent = conversaAtual.nome.charAt(0).toUpperCase();
-      
-      document.getElementById('app').classList.add('chat-aberto');
-      renderizarLista(document.getElementById('busca').value);
-
+      mostrarChatUI();
       await carregarMensagens();
       escutarMensagens();
-      
-      setTimeout(() => {
-        const input = document.getElementById('messageInput');
-        if (input) input.focus();
-      }, 200);
     }
 
     async function abrirConversaPorId(id) {
-      const { data, error } = await supabaseClient
-        .from('conversas')
-        .select('*')
-        .eq('id', id)
-        .single();
-
+      const { data, error } = await supabaseClient.from('conversas').select('*').eq('id', id).single();
       if (error || !data) {
-        console.error('Erro ao buscar conversa:', error);
-        document.getElementById('chatArea').innerHTML = '<div class="chat-vazio"><h2>Conversa não encontrada</h2><p style="margin-top:10px;color:#8696a0">Verifique se o link está correto.</p></div>';
+        document.getElementById('chatArea').innerHTML = '<div class="chat-vazio"><h2>Conversa não encontrada</h2></div>';
         return;
       }
-
       conversas = [data];
       conversaAtual = data;
-      
-      // Esconde sidebar e mostra chat
-      const sidebar = document.querySelector('.sidebar');
-      if (sidebar) sidebar.style.display = 'none';
-      
-      document.getElementById('chatVazio').style.display = 'none';
-      const chatAtivo = document.getElementById('chatAtivo');
-      chatAtivo.style.display = 'flex';
-      chatAtivo.style.flexDirection = 'column';
-      chatAtivo.style.height = '100%';
-      chatAtivo.style.flex = '1';
-      chatAtivo.style.minHeight = '0';
-      
-      document.getElementById('chatNome').textContent = data.nome;
-      document.getElementById('chatAvatar').textContent = data.nome.charAt(0).toUpperCase();
-      
-      const btnCopiar = document.querySelector('.btn-copiar-link');
-      if (btnCopiar) btnCopiar.style.display = 'none';
-
-      // Mobile
-      document.getElementById('app').classList.add('chat-aberto');
-
+      document.querySelector('.sidebar').style.display = 'none';
+      const btn = document.querySelector('.btn-copiar-link');
+      if (btn) btn.style.display = 'none';
+      mostrarChatUI();
       await carregarMensagens();
       escutarMensagens();
-      
-      // Foca no input
-      setTimeout(() => {
-        const input = document.getElementById('messageInput');
-        if (input) input.focus();
-      }, 300);
+    }
+
+    function mostrarChatUI() {
+      document.getElementById('chatVazio').style.display = 'none';
+      const el = document.getElementById('chatAtivo');
+      el.style.display = 'flex';
+      el.style.flexDirection = 'column';
+      el.style.height = '100%';
+      el.style.flex = '1';
+      el.style.minHeight = '0';
+      document.getElementById('chatNome').textContent = conversaAtual.nome;
+      document.getElementById('chatAvatar').textContent = conversaAtual.nome.charAt(0).toUpperCase();
+      document.getElementById('app').classList.add('chat-aberto');
+      renderizarLista(document.getElementById('busca')?.value || '');
+      setTimeout(() => document.getElementById('messageInput')?.focus(), 200);
     }
 
     function fecharChatMobile() {
@@ -689,129 +395,151 @@
 
     async function carregarMensagens() {
       if (!conversaAtual) return;
-
       const { data, error } = await supabaseClient
-        .from('mensagens')
-        .select('*')
+        .from('mensagens').select('*')
         .eq('conversa_id', conversaAtual.id)
         .order('created_at', { ascending: true });
-
       const container = document.getElementById('messages');
       container.innerHTML = '';
-
-      if (error) {
-        console.error(error);
-        return;
-      }
-
+      if (error) return console.error(error);
       (data || []).forEach(msg => adicionarMensagemNaTela(msg));
       scrollParaBaixo();
     }
 
     function escutarMensagens() {
-      if (channelMensagens) {
-        supabaseClient.removeChannel(channelMensagens);
-      }
-
+      if (channelMensagens) supabaseClient.removeChannel(channelMensagens);
       if (!conversaAtual) return;
-
       channelMensagens = supabaseClient
         .channel('msgs-' + conversaAtual.id)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'mensagens',
-            filter: 'conversa_id=eq.' + conversaAtual.id
-          },
-          (payload) => {
-            adicionarMensagemNaTela(payload.new);
-            scrollParaBaixo();
-          }
-        )
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'mensagens',
+          filter: 'conversa_id=eq.' + conversaAtual.id
+        }, payload => {
+          adicionarMensagemNaTela(payload.new);
+          scrollParaBaixo();
+        })
         .subscribe();
     }
 
     function adicionarMensagemNaTela(msg) {
       if (document.querySelector('[data-id="' + msg.id + '"]')) return;
-
       const div = document.createElement('div');
-      
-      const souEu = isCliente 
-        ? (msg.remetente === 'cliente')
-        : (msg.remetente === 'agente');
-
+      const souEu = isCliente ? (msg.remetente === 'cliente') : (msg.remetente === 'agente');
       div.className = 'msg ' + (souEu ? 'eu' : 'outro');
       div.setAttribute('data-id', msg.id);
-      
-      const hora = new Date(msg.created_at).toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-      
-      div.innerHTML = escapeHtml(msg.texto) + '<div class="hora">' + hora + '</div>';
+
+      let conteudo = '';
+      const tipo = msg.tipo || 'texto';
+      const url = msg.url_midia;
+
+      if (tipo === 'imagem' && url) {
+        conteudo = `<img src="${url}" alt="imagem" loading="lazy">`;
+      } else if (tipo === 'video' && url) {
+        conteudo = `<video src="${url}" controls playsinline></video>`;
+      } else if (tipo === 'audio' && url) {
+        conteudo = `<audio src="${url}" controls></audio>`;
+      } else if (tipo === 'arquivo' && url) {
+        const nome = msg.texto || 'Arquivo';
+        conteudo = `<a class="arquivo" href="${url}" target="_blank" download>📄 ${escapeHtml(nome)}</a>`;
+      }
+
+      if (msg.texto && tipo === 'texto') {
+        conteudo += escapeHtml(msg.texto);
+      } else if (msg.texto && tipo !== 'arquivo' && tipo !== 'texto') {
+        conteudo += `<div style="margin-top:4px">${escapeHtml(msg.texto)}</div>`;
+      }
+
+      const hora = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      div.innerHTML = conteudo + `<div class="hora">${hora}</div>`;
       document.getElementById('messages').appendChild(div);
     }
 
     async function enviarMensagem() {
       if (!conversaAtual) return;
-
       const input = document.getElementById('messageInput');
       const texto = input.value.trim();
       if (!texto) return;
-
       const remetente = isCliente ? 'cliente' : 'agente';
-
       input.value = '';
       document.getElementById('sendBtn').disabled = true;
-
-      const { error } = await supabaseClient
-        .from('mensagens')
-        .insert([{
-          conversa_id: conversaAtual.id,
-          texto: texto,
-          remetente: remetente
-        }]);
-
-      await supabaseClient
-        .from('conversas')
+      const { error } = await supabaseClient.from('mensagens').insert([{
+        conversa_id: conversaAtual.id, texto, remetente, tipo: 'texto'
+      }]);
+      await supabaseClient.from('conversas')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', conversaAtual.id);
-
       document.getElementById('sendBtn').disabled = false;
       input.focus();
+      if (error) alert('Erro: ' + error.message);
+    }
 
-      if (error) {
-        alert('Erro ao enviar: ' + error.message);
-        console.error(error);
+    async function enviarMidia(input, tipo) {
+      if (!conversaAtual || !input.files || !input.files[0]) return;
+      const file = input.files[0];
+      input.value = '';
+
+      // Limite de 20MB
+      if (file.size > 20 * 1024 * 1024) {
+        alert('Arquivo muito grande. Máximo 20MB.');
+        return;
+      }
+
+      const toast = document.createElement('div');
+      toast.className = 'uploading';
+      toast.textContent = 'Enviando arquivo...';
+      document.body.appendChild(toast);
+
+      try {
+        const ext = file.name.split('.').pop() || 'bin';
+        const nomeArquivo = `${conversaAtual.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+
+        const { data, error } = await supabaseClient.storage
+          .from('midias')
+          .upload(nomeArquivo, file, { cacheControl: '3600', upsert: false });
+
+        if (error) throw error;
+
+        const { data: urlData } = supabaseClient.storage
+          .from('midias')
+          .getPublicUrl(nomeArquivo);
+
+        const url = urlData.publicUrl;
+        const remetente = isCliente ? 'cliente' : 'agente';
+        const texto = tipo === 'arquivo' ? file.name : '';
+
+        const { error: errMsg } = await supabaseClient.from('mensagens').insert([{
+          conversa_id: conversaAtual.id,
+          texto: texto,
+          remetente,
+          tipo,
+          url_midia: url
+        }]);
+
+        if (errMsg) throw errMsg;
+
+        await supabaseClient.from('conversas')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', conversaAtual.id);
+
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao enviar: ' + (err.message || err));
+      } finally {
+        toast.remove();
       }
     }
 
-    document.getElementById('messageInput').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        enviarMensagem();
-      }
+    document.getElementById('messageInput').addEventListener('keypress', e => {
+      if (e.key === 'Enter') { e.preventDefault(); enviarMensagem(); }
     });
 
     function copiarLinkCliente() {
       if (!conversaAtual) return;
-      
-      let base = window.location.href.split('?')[0];
-      // Remove # se tiver
-      base = base.split('#')[0];
-      
+      let base = window.location.href.split('?')[0].split('#')[0];
       const link = base + '?sala=' + conversaAtual.id + '&cliente=1';
-      
-      // Sempre mostra o link para o usuário copiar (mais confiável)
-      const copiado = prompt('Copie o link abaixo e envie para o cliente:', link);
-      
-      // Tenta copiar automaticamente também
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(link).then(() => {
-          mostrarToast('Link copiado!');
-        }).catch(() => {});
+      prompt('Copie o link e envie para o cliente:', link);
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(link).then(() => mostrarToast('Link copiado!')).catch(() => {});
       }
     }
 
@@ -819,9 +547,7 @@
       if (!data) return '';
       const d = new Date(data);
       const agora = new Date();
-      const diff = agora - d;
-      
-      if (diff < 86400000 && d.getDate() === agora.getDate()) {
+      if (agora - d < 86400000 && d.getDate() === agora.getDate()) {
         return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       }
       return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
@@ -829,21 +555,21 @@
 
     function escapeHtml(text) {
       const div = document.createElement('div');
-      div.textContent = text;
+      div.textContent = text || '';
       return div.innerHTML;
     }
 
     function scrollParaBaixo() {
-      const container = document.getElementById('messages');
-      container.scrollTop = container.scrollHeight;
+      const c = document.getElementById('messages');
+      c.scrollTop = c.scrollHeight;
     }
 
     function mostrarToast(texto) {
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.textContent = texto;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 2500);
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = texto;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2500);
     }
 
     detectarModo();
