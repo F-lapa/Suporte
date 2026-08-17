@@ -362,9 +362,77 @@
     }
     @media (max-width: 800px) { .back { display: block; } }
     input[type="file"] { display: none; }
+
+    /* LOGIN ADMIN */
+    .login-screen {
+      position: fixed; inset: 0; z-index: 500;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .login-screen.hidden { display: none; }
+    .login-box {
+      width: 100%; max-width: 380px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+    .login-box .logo {
+      width: 56px; height: 56px; border-radius: 16px;
+      background: linear-gradient(135deg, var(--primary), #8b5cf6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; margin: 0 auto 16px;
+    }
+    .login-box h2 {
+      text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 6px;
+    }
+    .login-box .sub {
+      text-align: center; font-size: 13px; color: var(--text2); margin-bottom: 24px;
+    }
+    .login-box label {
+      display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 500;
+    }
+    .login-box input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 13px 14px; color: var(--text);
+      font-size: 15px; outline: none; margin-bottom: 14px; font-family: inherit;
+    }
+    .login-box input:focus { border-color: var(--primary); }
+    .login-box .btn-login {
+      width: 100%; background: var(--primary); color: white; border: none;
+      padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600;
+      cursor: pointer; font-family: inherit; margin-top: 6px;
+    }
+    .login-box .btn-login:hover { background: var(--primary-dim); }
+    .login-box .err {
+      color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; display: none;
+    }
+    .item .btn-del {
+      background: none; border: none; color: var(--text3); font-size: 16px;
+      cursor: pointer; padding: 6px; border-radius: 8px; opacity: 0.6;
+    }
+    .item .btn-del:hover { opacity: 1; color: var(--danger); background: rgba(239,68,68,0.12); }
+
   </style>
 </head>
 <body>
+
+  <div class="login-screen" id="loginScreen">
+    <div class="login-box">
+      <div class="logo">🔐</div>
+      <h2>Painel Admin</h2>
+      <p class="sub">Acesso restrito ao administrador</p>
+      <label>Usuário</label>
+      <input type="text" id="loginUser" placeholder="Seu nome" autocomplete="username">
+      <label>Senha</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+      <button class="btn-login" onclick="fazerLogin()">Entrar</button>
+      <div class="err" id="loginErr">Usuário ou senha incorretos</div>
+    </div>
+  </div>
+
   <div class="app" id="app">
     <div class="sidebar" id="sidebar">
       <div class="sidebar-top">
@@ -372,7 +440,10 @@
           <div class="brand-icon">💬</div>
           <h1>Atendimento</h1>
         </div>
-        <button class="btn-novo" id="btnNovo" onclick="abrirModal()">+ Novo</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-novo" id="btnNovo" onclick="abrirModal()">+ Novo</button>
+          <button class="hbtn" id="btnLogout" onclick="logout()" title="Sair">🚪</button>
+        </div>
       </div>
       <div class="search-wrap">
         <input type="text" id="busca" placeholder="Buscar..." oninput="filtrar()">
@@ -451,6 +522,12 @@
     const GEMINI_KEY = atob('QVEuQWI4Uk42S2JXaHRTeEVEWFd3aE9aSXdRUlVJZEN6cjJ6YnZYTGFFcjNzMlcxaDdDM2c=');
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const SECRET = 'AtendimentoSecreto2026!';
+
+    // ===== LOGIN ADMIN =====
+    // Altere a senha aqui se quiser:
+    const ADMIN_USER = 'Fernando Lapa';
+    const ADMIN_PASS = 'lapa2026';
+    const ADMIN_SESSION_KEY = 'atendimento_admin_ok';
 
     let conversas = [], atual = null, channel = null, isCli = false;
     let tipoFile = 'arquivo', recorder = null, chunks = [], recording = false, stream = null;
@@ -546,15 +623,68 @@
       const sala = p.get('sala');
       isCli = p.get('cliente') === '1';
       if (sala && isCli) {
+        // Cliente: sem login
+        document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('sidebar').style.display = 'none';
         document.getElementById('btnNovo').style.display = 'none';
         document.getElementById('btnNotas').style.display = 'none';
         document.getElementById('btnLink').style.display = 'none';
+        const btnBot = document.getElementById('btnBot');
+        if (btnBot) btnBot.style.display = 'none';
         document.body.classList.add('cli');
         protect();
         openById(sala);
       } else {
+        // Admin: exige login
+        if (localStorage.getItem(ADMIN_SESSION_KEY) === '1') {
+          document.getElementById('loginScreen').classList.add('hidden');
+          loadList();
+        } else {
+          document.getElementById('loginScreen').classList.remove('hidden');
+          setTimeout(() => document.getElementById('loginUser')?.focus(), 100);
+        }
+      }
+    }
+
+    function fazerLogin() {
+      const u = (document.getElementById('loginUser').value || '').trim();
+      const s = document.getElementById('loginPass').value || '';
+      const err = document.getElementById('loginErr');
+      if (u.toLowerCase() === ADMIN_USER.toLowerCase() && s === ADMIN_PASS) {
+        localStorage.setItem(ADMIN_SESSION_KEY, '1');
+        document.getElementById('loginScreen').classList.add('hidden');
+        err.style.display = 'none';
         loadList();
+        toast('Bem-vindo, ' + ADMIN_USER);
+      } else {
+        err.style.display = 'block';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      location.reload();
+    }
+
+    async function excluirCliente(id, nome, ev) {
+      if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+      if (!confirm('Excluir o cliente "' + nome + '" e todas as mensagens?')) return;
+      try {
+        // Apaga mensagens
+        await sb.from('mensagens').delete().eq('conversa_id', id);
+        // Apaga conversa
+        const { error } = await sb.from('conversas').delete().eq('id', id);
+        if (error) throw error;
+        if (atual && atual.id === id) {
+          atual = null;
+          document.getElementById('active').style.display = 'none';
+          document.getElementById('empty').style.display = 'flex';
+          document.getElementById('app').classList.remove('open');
+        }
+        await loadList();
+        toast('Cliente excluído');
+      } catch (e) {
+        toast('Erro ao excluir: ' + (e.message || e), true);
       }
     }
 
@@ -579,6 +709,7 @@
             <div class="item-sub">${c.notas ? '📝 Tem anotações' : 'Toque para abrir'}</div>
           </div>
           <div class="item-hora">${fmt(c.updated_at)}</div>
+          <button class="btn-del" title="Excluir" onclick="excluirCliente('${c.id}', '${esc(c.nome).replace(/'/g, "\'")}', event)">🗑️</button>
         </div>`;
       }).join('');
     }
@@ -1096,6 +1227,12 @@ Se o cliente pedir atendente/humano, diga que já está chamando o suporte.`;
       document.body.appendChild(e); setTimeout(() => e.remove(), 3200);
     }
 
+    document.getElementById('loginPass')?.addEventListener('keypress', e => {
+      if (e.key === 'Enter') fazerLogin();
+    });
+    document.getElementById('loginUser')?.addEventListener('keypress', e => {
+      if (e.key === 'Enter') document.getElementById('loginPass')?.focus();
+    });
     init();
   </script>
 </body>
