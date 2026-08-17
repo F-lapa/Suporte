@@ -424,35 +424,74 @@
       div.className = 'msg ' + (souEu ? 'eu' : 'outro');
       div.setAttribute('data-id', msg.id);
 
-      let conteudo = '';
       const tipo = (msg.tipo || 'texto').toLowerCase();
-      const url = msg.url_midia;
+      const url = (msg.url_midia || '').trim();
+      const hora = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-      if (url) {
-        if (tipo === 'imagem' || tipo === 'image' || tipo === 'foto') {
-          conteudo = `<img src="${url}" alt="imagem" loading="lazy" onclick="abrirLightbox('${url}')" onerror="this.outerHTML='<div style=color:#f88>Erro ao carregar imagem</div>'">`;
-        } else if (tipo === 'video') {
-          conteudo = `<video src="${url}" controls playsinline preload="metadata" onerror="this.outerHTML='<div style=color:#f88>Erro ao carregar vídeo</div>'"></video>`;
-        } else if (tipo === 'audio') {
-          conteudo = `<audio src="${url}" controls preload="metadata" onerror="this.outerHTML='<div style=color:#f88>Erro ao carregar áudio</div>'"></audio>`;
-        } else {
-          // arquivo genérico
-          const nome = msg.texto || 'Baixar arquivo';
-          conteudo = `<a class="arquivo" href="${url}" target="_blank" download>
-            <span style="font-size:24px">📄</span>
-            <span>${escapeHtml(nome)}</span>
-          </a>`;
-        }
+      // Constrói o conteúdo de forma segura (sem template string quebrando URL)
+      if (url && (tipo === 'imagem' || tipo === 'image' || tipo === 'foto')) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'imagem';
+        img.loading = 'lazy';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '280px';
+        img.style.borderRadius = '8px';
+        img.style.display = 'block';
+        img.style.marginBottom = '4px';
+        img.style.cursor = 'pointer';
+        img.onclick = function() { abrirLightbox(url); };
+        img.onerror = function() {
+          const a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.style.color = '#7dd3c0';
+          a.textContent = '📷 Abrir imagem';
+          img.replaceWith(a);
+        };
+        div.appendChild(img);
+      } else if (url && tipo === 'video') {
+        const video = document.createElement('video');
+        video.src = url;
+        video.controls = true;
+        video.playsInline = true;
+        video.preload = 'metadata';
+        video.style.maxWidth = '100%';
+        video.style.maxHeight = '280px';
+        video.style.borderRadius = '8px';
+        video.style.display = 'block';
+        video.style.marginBottom = '4px';
+        video.style.background = '#000';
+        div.appendChild(video);
+      } else if (url && tipo === 'audio') {
+        const audio = document.createElement('audio');
+        audio.src = url;
+        audio.controls = true;
+        audio.preload = 'metadata';
+        audio.style.width = '100%';
+        audio.style.minWidth = '200px';
+        audio.style.margin = '4px 0';
+        div.appendChild(audio);
+      } else if (url) {
+        const a = document.createElement('a');
+        a.className = 'arquivo';
+        a.href = url;
+        a.target = '_blank';
+        a.innerHTML = '<span style="font-size:24px">📄</span><span>' + escapeHtml(msg.texto || 'Baixar arquivo') + '</span>';
+        div.appendChild(a);
       }
 
       if (msg.texto && tipo === 'texto') {
-        conteudo += escapeHtml(msg.texto);
-      } else if (msg.texto && tipo !== 'arquivo' && tipo !== 'texto' && !url) {
-        conteudo += escapeHtml(msg.texto);
+        const span = document.createElement('span');
+        span.textContent = msg.texto;
+        div.appendChild(span);
       }
 
-      const hora = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      div.innerHTML = conteudo + `<div class="hora">${hora}</div>`;
+      const horaDiv = document.createElement('div');
+      horaDiv.className = 'hora';
+      horaDiv.textContent = hora;
+      div.appendChild(horaDiv);
+
       document.getElementById('messages').appendChild(div);
     }
 
