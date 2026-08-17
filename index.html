@@ -637,8 +637,25 @@
       const a = document.getElementById('active');
       a.style.display = 'flex'; a.style.flexDirection = 'column';
       a.style.height = '100%'; a.style.flex = '1'; a.style.minHeight = '0';
-      document.getElementById('nome').textContent = atual.nome;
-      document.getElementById('av').textContent = atual.nome[0].toUpperCase();
+
+      const nomeEl = document.getElementById('nome');
+      const avEl = document.getElementById('av');
+
+      if (isCli) {
+        // Cliente vê "Suporte" + logo
+        nomeEl.textContent = 'Suporte';
+        avEl.textContent = '';
+        avEl.style.backgroundImage = "url('suporte-avatar.png')";
+        avEl.style.backgroundSize = 'cover';
+        avEl.style.backgroundPosition = 'center';
+        avEl.style.backgroundColor = 'transparent';
+      } else {
+        nomeEl.textContent = atual.nome;
+        avEl.textContent = atual.nome[0].toUpperCase();
+        avEl.style.backgroundImage = '';
+        avEl.style.backgroundColor = '';
+      }
+
       document.getElementById('app').classList.add('open');
       render(document.getElementById('busca')?.value || '');
       const seen = isCli ? atual.last_seen_agente : atual.last_seen_cliente;
