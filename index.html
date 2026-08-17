@@ -9,11 +9,8 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background: #0b141a;
-      color: #e9edef;
-      height: 100vh;
-      height: 100dvh;
-      overflow: hidden;
+      background: #0b141a; color: #e9edef;
+      height: 100vh; height: 100dvh; overflow: hidden;
     }
     .app { display: flex; height: 100%; }
     .sidebar {
@@ -28,10 +25,8 @@
     .sidebar-header h1 { font-size: 17px; font-weight: 600; }
     .btn-novo {
       background: #00a884; color: white; border: none;
-      padding: 8px 14px; border-radius: 6px; font-size: 13px;
-      font-weight: 500; cursor: pointer;
+      padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer;
     }
-    .btn-novo:hover { background: #008f72; }
     .search-box { padding: 10px 12px; }
     .search-box input {
       width: 100%; background: #202c33; border: none; border-radius: 8px;
@@ -48,37 +43,22 @@
     .avatar {
       width: 48px; height: 48px; border-radius: 50%; background: #00a884;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 600; color: white; flex-shrink: 0;
-      text-transform: uppercase;
+      font-size: 18px; font-weight: 600; color: white; flex-shrink: 0; text-transform: uppercase;
     }
     .cliente-info { flex: 1; min-width: 0; }
-    .cliente-nome {
-      font-size: 15px; font-weight: 500; margin-bottom: 3px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .cliente-preview {
-      font-size: 13px; color: #8696a0;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
+    .cliente-nome { font-size: 15px; font-weight: 500; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cliente-preview { font-size: 13px; color: #8696a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .cliente-hora { font-size: 12px; color: #8696a0; flex-shrink: 0; }
-    .vazio-lista {
-      padding: 40px 20px; text-align: center; color: #8696a0;
-      font-size: 14px; line-height: 1.5;
-    }
-    .chat-area {
-      flex: 1; display: flex; flex-direction: column;
-      background: #0b141a; min-height: 0; overflow: hidden;
-    }
+    .vazio-lista { padding: 40px 20px; text-align: center; color: #8696a0; font-size: 14px; line-height: 1.5; }
+    .chat-area { flex: 1; display: flex; flex-direction: column; background: #0b141a; min-height: 0; overflow: hidden; }
     .chat-vazio {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
       color: #8696a0; text-align: center; padding: 40px;
     }
     .chat-vazio .icone { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
     .chat-vazio h2 { font-size: 20px; font-weight: 400; color: #e9edef; margin-bottom: 8px; }
     .chat-header {
-      background: #202c33; padding: 12px 16px;
-      display: flex; align-items: center; gap: 12px;
+      background: #202c33; padding: 12px 16px; display: flex; align-items: center; gap: 12px;
       border-bottom: 1px solid #2a3942; flex-shrink: 0;
     }
     .chat-header .avatar { width: 40px; height: 40px; font-size: 15px; }
@@ -86,16 +66,14 @@
     .chat-header-info span { font-size: 12px; color: #00a884; }
     .btn-copiar-link {
       margin-left: auto; background: transparent; border: 1px solid #3b4a54;
-      color: #e9edef; padding: 7px 12px; border-radius: 6px;
-      font-size: 12px; cursor: pointer;
+      color: #e9edef; padding: 7px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;
     }
-    .btn-copiar-link:hover { background: #2a3942; }
     #messages {
       flex: 1; overflow-y: auto; padding: 16px;
       display: flex; flex-direction: column; gap: 8px; min-height: 0;
     }
     .msg {
-      max-width: 75%; padding: 8px 12px; border-radius: 8px;
+      max-width: 80%; padding: 8px 12px; border-radius: 8px;
       font-size: 14.5px; line-height: 1.4; word-wrap: break-word;
       animation: fadeIn 0.2s ease;
     }
@@ -103,36 +81,33 @@
       from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .msg.eu {
-      background: #005c4b; align-self: flex-end; border-bottom-right-radius: 2px;
-    }
-    .msg.outro {
-      background: #202c33; align-self: flex-start; border-bottom-left-radius: 2px;
-    }
-    .msg .hora {
-      font-size: 11px; color: rgba(233,237,239,0.55);
-      margin-top: 4px; text-align: right;
-    }
+    .msg.eu { background: #005c4b; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .msg.outro { background: #202c33; align-self: flex-start; border-bottom-left-radius: 2px; }
+    .msg .hora { font-size: 11px; color: rgba(233,237,239,0.55); margin-top: 4px; text-align: right; }
     .msg.outro .hora { text-align: left; }
-    .msg img, .msg video {
-      max-width: 100%; border-radius: 6px; display: block; margin-bottom: 4px;
+    .msg img {
+      max-width: 100%; max-height: 280px; border-radius: 8px;
+      display: block; margin-bottom: 4px; cursor: pointer;
     }
-    .msg audio { width: 220px; margin: 4px 0; }
+    .msg video {
+      max-width: 100%; max-height: 280px; border-radius: 8px;
+      display: block; margin-bottom: 4px; background: #000;
+    }
+    .msg audio { width: 100%; min-width: 200px; margin: 4px 0; }
     .msg .arquivo {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 10px; background: rgba(0,0,0,0.2);
-      border-radius: 6px; margin-bottom: 4px; text-decoration: none; color: #e9edef;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; background: rgba(0,0,0,0.25);
+      border-radius: 8px; margin-bottom: 4px; text-decoration: none; color: #e9edef;
     }
-    .msg .arquivo:hover { background: rgba(0,0,0,0.3); }
+    .msg .arquivo:hover { background: rgba(0,0,0,0.35); }
     .input-area {
       background: #202c33; padding: 8px 10px;
-      display: flex; gap: 6px; align-items: center;
+      display: flex; gap: 4px; align-items: center;
       border-top: 1px solid #2a3942; flex-shrink: 0;
     }
     .btn-midia {
       background: transparent; border: none; color: #8696a0;
-      font-size: 22px; cursor: pointer; padding: 6px; line-height: 1;
-      flex-shrink: 0;
+      font-size: 20px; cursor: pointer; padding: 6px; line-height: 1; flex-shrink: 0;
     }
     .btn-midia:hover { color: #00a884; }
     #messageInput {
@@ -145,8 +120,7 @@
       border-radius: 50%; color: white; font-size: 18px; cursor: pointer;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    #sendBtn:hover { background: #008f72; }
-    #sendBtn:disabled { background: #3b4a54; cursor: not-allowed; }
+    #sendBtn:disabled { background: #3b4a54; }
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.6);
       display: none; align-items: center; justify-content: center; z-index: 100;
@@ -156,28 +130,40 @@
       background: #202c33; border-radius: 12px; padding: 24px;
       width: 90%; max-width: 380px;
     }
-    .modal h3 { font-size: 17px; margin-bottom: 16px; font-weight: 500; }
+    .modal h3 { font-size: 17px; margin-bottom: 16px; }
     .modal input {
       width: 100%; background: #2a3942; border: none; border-radius: 8px;
       padding: 12px 14px; color: #e9edef; font-size: 15px; outline: none; margin-bottom: 16px;
     }
     .modal-botoes { display: flex; gap: 10px; justify-content: flex-end; }
     .modal-botoes button {
-      padding: 9px 18px; border-radius: 6px; font-size: 14px;
-      font-weight: 500; cursor: pointer; border: none;
+      padding: 9px 18px; border-radius: 6px; font-size: 14px; font-weight: 500;
+      cursor: pointer; border: none;
     }
     .btn-cancelar { background: transparent; color: #8696a0; }
     .btn-criar { background: #00a884; color: white; }
     .toast {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
       background: #00a884; color: white; padding: 10px 20px;
-      border-radius: 8px; font-size: 14px; z-index: 200;
+      border-radius: 8px; font-size: 14px; z-index: 200; max-width: 90%;
     }
+    .toast.erro { background: #d32f2f; }
     .uploading {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
       background: #202c33; color: #e9edef; padding: 10px 20px;
-      border-radius: 8px; font-size: 14px; z-index: 200;
-      border: 1px solid #3b4a54;
+      border-radius: 8px; font-size: 14px; z-index: 200; border: 1px solid #3b4a54;
+    }
+    .lightbox {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+      display: none; align-items: center; justify-content: center; z-index: 300;
+      padding: 20px;
+    }
+    .lightbox.ativo { display: flex; }
+    .lightbox img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+    .lightbox .fechar {
+      position: absolute; top: 16px; right: 16px; background: #333;
+      color: white; border: none; width: 40px; height: 40px;
+      border-radius: 50%; font-size: 20px; cursor: pointer;
     }
     @media (max-width: 700px) {
       .sidebar { width: 100%; }
@@ -212,7 +198,7 @@
       <div class="chat-vazio" id="chatVazio">
         <div class="icone">💬</div>
         <h2>Painel de Atendimento</h2>
-        <p>Selecione um cliente à esquerda<br>ou crie um novo para começar.</p>
+        <p>Selecione um cliente ou crie um novo.</p>
       </div>
 
       <div id="chatAtivo" style="display:none; flex-direction:column; height:100%; flex:1; min-height:0;">
@@ -223,22 +209,15 @@
             <h2 id="chatNome">Cliente</h2>
             <span>Online</span>
           </div>
-          <button class="btn-copiar-link" onclick="copiarLinkCliente()">📋 Copiar link</button>
+          <button class="btn-copiar-link" onclick="copiarLinkCliente()">📋 Link</button>
         </div>
-
         <div id="messages"></div>
-
         <div class="input-area">
-          <button class="btn-midia" onclick="document.getElementById('inputFoto').click()" title="Foto">📷</button>
-          <button class="btn-midia" onclick="document.getElementById('inputVideo').click()" title="Vídeo">🎬</button>
-          <button class="btn-midia" onclick="document.getElementById('inputArquivo').click()" title="Arquivo">📎</button>
-          <button class="btn-midia" onclick="document.getElementById('inputAudio').click()" title="Áudio">🎤</button>
-          
-          <input type="file" id="inputFoto" accept="image/*" onchange="enviarMidia(this, 'imagem')">
-          <input type="file" id="inputVideo" accept="video/*" onchange="enviarMidia(this, 'video')">
-          <input type="file" id="inputArquivo" accept="*/*" onchange="enviarMidia(this, 'arquivo')">
-          <input type="file" id="inputAudio" accept="audio/*" onchange="enviarMidia(this, 'audio')">
-
+          <button class="btn-midia" onclick="escolherArquivo('imagem')" title="Foto">📷</button>
+          <button class="btn-midia" onclick="escolherArquivo('video')" title="Vídeo">🎬</button>
+          <button class="btn-midia" onclick="escolherArquivo('arquivo')" title="Arquivo">📎</button>
+          <button class="btn-midia" onclick="escolherArquivo('audio')" title="Áudio">🎤</button>
+          <input type="file" id="fileInput" onchange="enviarArquivo(event)">
           <input type="text" id="messageInput" placeholder="Digite uma mensagem..." autocomplete="off">
           <button id="sendBtn" onclick="enviarMensagem()">➤</button>
         </div>
@@ -257,6 +236,11 @@
     </div>
   </div>
 
+  <div class="lightbox" id="lightbox" onclick="fecharLightbox()">
+    <button class="fechar" onclick="fecharLightbox()">✕</button>
+    <img id="lightboxImg" src="" alt="">
+  </div>
+
   <script>
     const SUPABASE_URL = 'https://hthcmhbcgmwprhgubiuy.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_Z_4elpCD5ygI-SV_2ljJug_gHW0ipa2';
@@ -266,6 +250,17 @@
     let conversaAtual = null;
     let channelMensagens = null;
     let isCliente = false;
+    let tipoArquivoAtual = 'arquivo';
+
+    // Pede permissões ao carregar (câmera/microfone)
+    async function pedirPermissoes() {
+      try {
+        // Só pede se o navegador suportar
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          // Não força agora para não assustar; pede quando clicar no áudio/foto
+        }
+      } catch(e) {}
+    }
 
     function detectarModo() {
       const params = new URLSearchParams(window.location.search);
@@ -277,6 +272,7 @@
       } else {
         carregarConversas();
       }
+      pedirPermissoes();
     }
 
     async function carregarConversas() {
@@ -429,29 +425,43 @@
       div.setAttribute('data-id', msg.id);
 
       let conteudo = '';
-      const tipo = msg.tipo || 'texto';
+      const tipo = (msg.tipo || 'texto').toLowerCase();
       const url = msg.url_midia;
 
-      if (tipo === 'imagem' && url) {
-        conteudo = `<img src="${url}" alt="imagem" loading="lazy">`;
-      } else if (tipo === 'video' && url) {
-        conteudo = `<video src="${url}" controls playsinline></video>`;
-      } else if (tipo === 'audio' && url) {
-        conteudo = `<audio src="${url}" controls></audio>`;
-      } else if (tipo === 'arquivo' && url) {
-        const nome = msg.texto || 'Arquivo';
-        conteudo = `<a class="arquivo" href="${url}" target="_blank" download>📄 ${escapeHtml(nome)}</a>`;
+      if (url) {
+        if (tipo === 'imagem' || tipo === 'image' || tipo === 'foto') {
+          conteudo = `<img src="${url}" alt="imagem" loading="lazy" onclick="abrirLightbox('${url}')" onerror="this.outerHTML='<div style=color:#f88>Erro ao carregar imagem</div>'">`;
+        } else if (tipo === 'video') {
+          conteudo = `<video src="${url}" controls playsinline preload="metadata" onerror="this.outerHTML='<div style=color:#f88>Erro ao carregar vídeo</div>'"></video>`;
+        } else if (tipo === 'audio') {
+          conteudo = `<audio src="${url}" controls preload="metadata" onerror="this.outerHTML='<div style=color:#f88>Erro ao carregar áudio</div>'"></audio>`;
+        } else {
+          // arquivo genérico
+          const nome = msg.texto || 'Baixar arquivo';
+          conteudo = `<a class="arquivo" href="${url}" target="_blank" download>
+            <span style="font-size:24px">📄</span>
+            <span>${escapeHtml(nome)}</span>
+          </a>`;
+        }
       }
 
       if (msg.texto && tipo === 'texto') {
         conteudo += escapeHtml(msg.texto);
-      } else if (msg.texto && tipo !== 'arquivo' && tipo !== 'texto') {
-        conteudo += `<div style="margin-top:4px">${escapeHtml(msg.texto)}</div>`;
+      } else if (msg.texto && tipo !== 'arquivo' && tipo !== 'texto' && !url) {
+        conteudo += escapeHtml(msg.texto);
       }
 
       const hora = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       div.innerHTML = conteudo + `<div class="hora">${hora}</div>`;
       document.getElementById('messages').appendChild(div);
+    }
+
+    function abrirLightbox(url) {
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightbox').classList.add('ativo');
+    }
+    function fecharLightbox() {
+      document.getElementById('lightbox').classList.remove('ativo');
     }
 
     async function enviarMensagem() {
@@ -470,60 +480,92 @@
         .eq('id', conversaAtual.id);
       document.getElementById('sendBtn').disabled = false;
       input.focus();
-      if (error) alert('Erro: ' + error.message);
+      if (error) mostrarToast('Erro: ' + error.message, true);
     }
 
-    async function enviarMidia(input, tipo) {
-      if (!conversaAtual || !input.files || !input.files[0]) return;
-      const file = input.files[0];
-      input.value = '';
+    function escolherArquivo(tipo) {
+      tipoArquivoAtual = tipo;
+      const input = document.getElementById('fileInput');
+      if (tipo === 'imagem') input.accept = 'image/*';
+      else if (tipo === 'video') input.accept = 'video/*';
+      else if (tipo === 'audio') input.accept = 'audio/*';
+      else input.accept = '*/*';
+      input.click();
+    }
 
-      // Limite de 20MB
-      if (file.size > 20 * 1024 * 1024) {
-        alert('Arquivo muito grande. Máximo 20MB.');
+    async function enviarArquivo(event) {
+      const file = event.target.files && event.target.files[0];
+      event.target.value = '';
+      if (!file || !conversaAtual) return;
+
+      if (file.size > 25 * 1024 * 1024) {
+        mostrarToast('Arquivo muito grande (máx 25MB)', true);
         return;
       }
 
       const toast = document.createElement('div');
       toast.className = 'uploading';
-      toast.textContent = 'Enviando arquivo...';
+      toast.textContent = 'Enviando... aguarde';
       document.body.appendChild(toast);
 
       try {
-        const ext = file.name.split('.').pop() || 'bin';
-        const nomeArquivo = `${conversaAtual.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+        // Detecta tipo pelo MIME se necessário
+        let tipo = tipoArquivoAtual;
+        if (file.type.startsWith('image/')) tipo = 'imagem';
+        else if (file.type.startsWith('video/')) tipo = 'video';
+        else if (file.type.startsWith('audio/')) tipo = 'audio';
+        else if (tipoArquivoAtual === 'arquivo') tipo = 'arquivo';
 
-        const { data, error } = await supabaseClient.storage
+        const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+        const nomeArquivo = conversaAtual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
+
+        // Upload
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
           .from('midias')
-          .upload(nomeArquivo, file, { cacheControl: '3600', upsert: false });
+          .upload(nomeArquivo, file, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: file.type || 'application/octet-stream'
+          });
 
-        if (error) throw error;
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error(uploadError.message || 'Falha no upload');
+        }
 
+        // URL pública
         const { data: urlData } = supabaseClient.storage
           .from('midias')
           .getPublicUrl(nomeArquivo);
 
         const url = urlData.publicUrl;
-        const remetente = isCliente ? 'cliente' : 'agente';
-        const texto = tipo === 'arquivo' ? file.name : '';
+        if (!url) throw new Error('Não foi possível gerar URL do arquivo');
 
-        const { error: errMsg } = await supabaseClient.from('mensagens').insert([{
+        const remetente = isCliente ? 'cliente' : 'agente';
+        const texto = (tipo === 'arquivo') ? file.name : (file.name || '');
+
+        const { error: msgError } = await supabaseClient.from('mensagens').insert([{
           conversa_id: conversaAtual.id,
           texto: texto,
-          remetente,
-          tipo,
+          remetente: remetente,
+          tipo: tipo,
           url_midia: url
         }]);
 
-        if (errMsg) throw errMsg;
+        if (msgError) {
+          console.error('Msg error:', msgError);
+          throw new Error(msgError.message || 'Erro ao salvar mensagem');
+        }
 
         await supabaseClient.from('conversas')
           .update({ updated_at: new Date().toISOString() })
           .eq('id', conversaAtual.id);
 
+        mostrarToast('Enviado!');
+
       } catch (err) {
         console.error(err);
-        alert('Erro ao enviar: ' + (err.message || err));
+        mostrarToast('Erro: ' + (err.message || 'Falha ao enviar'), true);
       } finally {
         toast.remove();
       }
@@ -561,15 +603,15 @@
 
     function scrollParaBaixo() {
       const c = document.getElementById('messages');
-      c.scrollTop = c.scrollHeight;
+      if (c) c.scrollTop = c.scrollHeight;
     }
 
-    function mostrarToast(texto) {
+    function mostrarToast(texto, erro = false) {
       const t = document.createElement('div');
-      t.className = 'toast';
+      t.className = 'toast' + (erro ? ' erro' : '');
       t.textContent = texto;
       document.body.appendChild(t);
-      setTimeout(() => t.remove(), 2500);
+      setTimeout(() => t.remove(), 3500);
     }
 
     detectarModo();
