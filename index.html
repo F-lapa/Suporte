@@ -110,6 +110,14 @@
       font-size: 20px; cursor: pointer; padding: 6px; line-height: 1; flex-shrink: 0;
     }
     .btn-midia:hover { color: #00a884; }
+    .btn-midia.gravando {
+      color: #ef4444;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
     #messageInput {
       flex: 1; background: #2a3942; border: none; border-radius: 8px;
       padding: 11px 14px; color: #e9edef; font-size: 15px; outline: none;
@@ -216,7 +224,7 @@
           <button class="btn-midia" onclick="escolherArquivo('imagem')" title="Foto">📷</button>
           <button class="btn-midia" onclick="escolherArquivo('video')" title="Vídeo">🎬</button>
           <button class="btn-midia" onclick="escolherArquivo('arquivo')" title="Arquivo">📎</button>
-          <button class="btn-midia" onclick="escolherArquivo('audio')" title="Áudio">🎤</button>
+          <button class="btn-midia" id="btnAudio" onclick="toggleGravacao()" title="Gravar áudio">🎤</button>
           <input type="file" id="fileInput" onchange="enviarArquivo(event)">
           <input type="text" id="messageInput" placeholder="Digite uma mensagem..." autocomplete="off">
           <button id="sendBtn" onclick="enviarMensagem()">➤</button>
@@ -251,6 +259,10 @@
     let channelMensagens = null;
     let isCliente = false;
     let tipoArquivoAtual = 'arquivo';
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let gravando = false;
+    let streamAudio = null;
 
     // Pede permissões ao carregar (câmera/microfone)
     async function pedirPermissoes() {
@@ -260,6 +272,147 @@
           // Não força agora para não assustar; pede quando clicar no áudio/foto
         }
       } catch(e) {}
+    }
+
+    // ========== GRAVAÇÃO DE ÁUDIO ==========
+    async function toggleGravacao() {
+      if (gravando) {
+        pararGravacao();
+      } else {
+        await iniciarGravacao();
+      }
+    }
+
+    async function iniciarGravacao() {
+      if (!conversaAtual) {
+        mostrarToast('Abra uma conversa primeiro', true);
+        return;
+      }
+      try {
+        // Pede permissão do microfone
+        streamAudio = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        audioChunks = [];
+        const options = {};
+        // Prefere formatos mais compatíveis
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          options.mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          options.mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          options.mimeType = 'audio/ogg';
+        }
+
+        mediaRecorder = new MediaRecorder(streamAudio, options);
+        
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const mime = mediaRecorder.mimeType || 'audio/webm';
+          const blob = new Blob(audioChunks, { type: mime });
+          
+          // Para as tracks do microfone
+          if (streamAudio) {
+            streamAudio.getTracks().forEach(t => t.stop());
+            streamAudio = null;
+          }
+
+          if (blob.size < 1000) {
+            mostrarToast('Áudio muito curto', true);
+            return;
+          }
+
+          await enviarBlobAudio(blob, mime);
+        };
+
+        mediaRecorder.start(250);
+        gravando = true;
+        
+        const btn = document.getElementById('btnAudio');
+        if (btn) {
+          btn.classList.add('gravando');
+          btn.textContent = '⏹';
+          btn.title = 'Parar gravação';
+        }
+        mostrarToast('Gravando... toque de novo para parar');
+
+      } catch (err) {
+        console.error(err);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          mostrarToast('Permissão de microfone negada. Ative nas configurações do navegador.', true);
+        } else {
+          mostrarToast('Erro ao acessar microfone: ' + err.message, true);
+        }
+      }
+    }
+
+    function pararGravacao() {
+      if (mediaRecorder && gravando) {
+        mediaRecorder.stop();
+        gravando = false;
+        const btn = document.getElementById('btnAudio');
+        if (btn) {
+          btn.classList.remove('gravando');
+          btn.textContent = '🎤';
+          btn.title = 'Gravar áudio';
+        }
+      }
+    }
+
+    async function enviarBlobAudio(blob, mime) {
+      const toast = document.createElement('div');
+      toast.className = 'uploading';
+      toast.textContent = 'Enviando áudio...';
+      document.body.appendChild(toast);
+
+      try {
+        let ext = 'webm';
+        if (mime.includes('mp4')) ext = 'm4a';
+        else if (mime.includes('ogg')) ext = 'ogg';
+        else if (mime.includes('mpeg')) ext = 'mp3';
+
+        const nomeArquivo = conversaAtual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
+
+        const { error: uploadError } = await supabaseClient.storage
+          .from('midias')
+          .upload(nomeArquivo, blob, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: mime
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabaseClient.storage
+          .from('midias')
+          .getPublicUrl(nomeArquivo);
+
+        const url = urlData.publicUrl;
+        const remetente = isCliente ? 'cliente' : 'agente';
+
+        const { error: msgError } = await supabaseClient.from('mensagens').insert([{
+          conversa_id: conversaAtual.id,
+          texto: 'Áudio',
+          remetente: remetente,
+          tipo: 'audio',
+          url_midia: url
+        }]);
+
+        if (msgError) throw msgError;
+
+        await supabaseClient.from('conversas')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', conversaAtual.id);
+
+        mostrarToast('Áudio enviado!');
+      } catch (err) {
+        console.error(err);
+        mostrarToast('Erro ao enviar áudio: ' + (err.message || err), true);
+      } finally {
+        toast.remove();
+      }
     }
 
     function detectarModo() {
