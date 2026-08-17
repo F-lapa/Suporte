@@ -877,40 +877,53 @@ Se o cliente pedir atendente/humano, diga que já está chamando o suporte.`;
         }));
         if (!contents.length) contents.push({ role: 'user', parts: [{ text: 'Oi' }] });
 
-        const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+        const models = [
+          'gemini-2.0-flash-lite',
+          'gemini-1.5-flash-8b',
+          'gemini-1.5-flash',
+          'gemini-2.0-flash',
+          'gemini-2.5-flash-lite',
+          'gemini-2.5-flash',
+          'gemini-flash-latest'
+        ];
         let resposta = null;
         let lastErr = null;
 
-        for (const model of models) {
-          try {
-            const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + GEMINI_KEY;
-            const resp = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                system_instruction: { parts: [{ text: systemPrompt }] },
-                contents,
-                generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
-              })
-            });
-            const data = await resp.json().catch(() => ({}));
-            if (!resp.ok) {
-              lastErr = data?.error?.message || ('HTTP ' + resp.status);
-              console.warn('Modelo', model, lastErr);
-              continue;
+        // Até 2 tentativas por modelo, com pequena espera se estiver sobrecarregado
+        for (let tentativa = 0; tentativa < 2 && !resposta; tentativa++) {
+          if (tentativa > 0) await new Promise(r => setTimeout(r, 1200));
+          for (const model of models) {
+            try {
+              const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + GEMINI_KEY;
+              const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  system_instruction: { parts: [{ text: systemPrompt }] },
+                  contents,
+                  generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
+                })
+              });
+              const data = await resp.json().catch(() => ({}));
+              if (!resp.ok) {
+                lastErr = data?.error?.message || ('HTTP ' + resp.status);
+                console.warn('Modelo', model, lastErr);
+                continue;
+              }
+              resposta = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || null;
+              if (resposta) { console.log('Bot OK com', model); break; }
+            } catch (e) {
+              lastErr = String(e);
+              console.warn('Modelo', model, e);
             }
-            resposta = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || null;
-            if (resposta) break;
-          } catch (e) {
-            lastErr = String(e);
-            console.warn('Modelo', model, e);
           }
         }
 
         if (!resposta) {
           console.error('Bot falhou:', lastErr);
-          toast('Bot falhou: ' + (lastErr || 'sem resposta'), true);
-          return;
+          // fallback educado se a API estiver fora
+          resposta = 'Olá! Sou o suporte automático. No momento estou com instabilidade. Descreva seu problema (app, erro na tela) que um atendente já foi avisado.';
+          toast('API sobrecarregada — resposta padrão enviada', true);
         }
 
         // Insere resposta do bot como agente (sem criptografia para o bot, ou com)
