@@ -3,222 +3,335 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Painel de Atendimento</title>
+  <title>Atendimento Pro</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    :root {
+      --bg: #0f1419;
+      --bg2: #1a2332;
+      --bg3: #243044;
+      --border: #2d3a4f;
+      --accent: #3b82f6;
+      --accent2: #22c55e;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --danger: #ef4444;
+      --msg-me: #1e40af;
+      --msg-other: #1e293b;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background: #0b141a; color: #e9edef;
-      height: 100vh; height: 100dvh; overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh; height: 100dvh;
+      overflow: hidden;
     }
     .app { display: flex; height: 100%; }
+
+    /* SIDEBAR */
     .sidebar {
-      width: 340px; background: #111b21; border-right: 1px solid #2a3942;
+      width: 360px; background: var(--bg2);
+      border-right: 1px solid var(--border);
       display: flex; flex-direction: column; flex-shrink: 0;
     }
     .sidebar-header {
-      background: #202c33; padding: 14px 16px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid #2a3942;
+      padding: 18px 20px; display: flex; align-items: center;
+      justify-content: space-between; border-bottom: 1px solid var(--border);
     }
-    .sidebar-header h1 { font-size: 17px; font-weight: 600; }
+    .sidebar-header h1 {
+      font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
+    }
+    .sidebar-header h1 span { color: var(--accent); }
     .btn-novo {
-      background: #00a884; color: white; border: none;
-      padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer;
+      background: var(--accent); color: white; border: none;
+      padding: 9px 16px; border-radius: 10px; font-size: 13px;
+      font-weight: 600; cursor: pointer; transition: 0.15s;
     }
-    .search-box { padding: 10px 12px; }
+    .btn-novo:hover { background: #2563eb; transform: translateY(-1px); }
+    .search-box { padding: 12px 16px; }
     .search-box input {
-      width: 100%; background: #202c33; border: none; border-radius: 8px;
-      padding: 10px 14px; color: #e9edef; font-size: 14px; outline: none;
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 12px; padding: 11px 16px; color: var(--text);
+      font-size: 14px; outline: none; transition: 0.15s;
     }
-    .search-box input::placeholder { color: #8696a0; }
-    .lista-clientes { flex: 1; overflow-y: auto; }
+    .search-box input:focus { border-color: var(--accent); }
+    .search-box input::placeholder { color: var(--text2); }
+    .lista-clientes { flex: 1; overflow-y: auto; padding: 4px 8px; }
     .cliente-item {
       display: flex; align-items: center; gap: 12px;
-      padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #1e2a32;
+      padding: 12px 12px; border-radius: 14px; cursor: pointer;
+      transition: 0.15s; margin-bottom: 2px;
     }
-    .cliente-item:hover { background: #202c33; }
-    .cliente-item.ativo { background: #2a3942; }
+    .cliente-item:hover { background: var(--bg3); }
+    .cliente-item.ativo { background: var(--bg3); box-shadow: inset 3px 0 0 var(--accent); }
     .avatar {
-      width: 48px; height: 48px; border-radius: 50%; background: #00a884;
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 600; color: white; flex-shrink: 0; text-transform: uppercase;
+      font-size: 18px; font-weight: 700; color: white; flex-shrink: 0;
+      position: relative;
+    }
+    .avatar .online-dot {
+      position: absolute; bottom: -2px; right: -2px;
+      width: 14px; height: 14px; background: var(--accent2);
+      border: 2.5px solid var(--bg2); border-radius: 50%;
     }
     .cliente-info { flex: 1; min-width: 0; }
-    .cliente-nome { font-size: 15px; font-weight: 500; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .cliente-preview { font-size: 13px; color: #8696a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .cliente-hora { font-size: 12px; color: #8696a0; flex-shrink: 0; }
-    .vazio-lista { padding: 40px 20px; text-align: center; color: #8696a0; font-size: 14px; line-height: 1.5; }
-    .chat-area { flex: 1; display: flex; flex-direction: column; background: #0b141a; min-height: 0; overflow: hidden; }
+    .cliente-nome {
+      font-size: 15px; font-weight: 600; margin-bottom: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .cliente-preview {
+      font-size: 13px; color: var(--text2);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .cliente-meta { text-align: right; flex-shrink: 0; }
+    .cliente-hora { font-size: 11px; color: var(--text2); }
+    .vazio-lista {
+      padding: 48px 24px; text-align: center; color: var(--text2);
+      font-size: 14px; line-height: 1.6;
+    }
+
+    /* CHAT */
+    .chat-area {
+      flex: 1; display: flex; flex-direction: column;
+      background: var(--bg); min-height: 0; overflow: hidden;
+    }
     .chat-vazio {
-      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      color: #8696a0; text-align: center; padding: 40px;
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: var(--text2); text-align: center; padding: 40px;
     }
-    .chat-vazio .icone { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
-    .chat-vazio h2 { font-size: 20px; font-weight: 400; color: #e9edef; margin-bottom: 8px; }
+    .chat-vazio .icone {
+      width: 80px; height: 80px; border-radius: 24px;
+      background: var(--bg2); display: flex; align-items: center;
+      justify-content: center; font-size: 36px; margin-bottom: 20px;
+    }
+    .chat-vazio h2 { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
     .chat-header {
-      background: #202c33; padding: 12px 16px; display: flex; align-items: center; gap: 12px;
-      border-bottom: 1px solid #2a3942; flex-shrink: 0;
+      background: var(--bg2); padding: 12px 20px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
-    .chat-header .avatar { width: 40px; height: 40px; font-size: 15px; }
-    .chat-header-info h2 { font-size: 15px; font-weight: 500; }
-    .chat-header-info span { font-size: 12px; color: #00a884; }
-    .btn-copiar-link {
-      margin-left: auto; background: transparent; border: 1px solid #3b4a54;
-      color: #e9edef; padding: 7px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    .chat-header .avatar { width: 42px; height: 42px; font-size: 15px; border-radius: 12px; }
+    .chat-header-info h2 { font-size: 15px; font-weight: 600; }
+    .chat-header-info .status-line {
+      font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 5px;
     }
+    .chat-header-info .status-line.online { color: var(--accent2); }
+    .chat-header-info .status-line.online::before {
+      content: ''; width: 7px; height: 7px; background: var(--accent2);
+      border-radius: 50%; display: inline-block;
+    }
+    .header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .btn-header {
+      background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 12px; border-radius: 10px;
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: 0.15s;
+    }
+    .btn-header:hover { background: var(--border); }
+    .btn-header.ativo { background: var(--accent); border-color: var(--accent); color: white; }
+
     #messages {
-      flex: 1; overflow-y: auto; padding: 16px;
-      display: flex; flex-direction: column; gap: 8px; min-height: 0;
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 6px; min-height: 0;
+      background: 
+        radial-gradient(ellipse at top left, rgba(59,130,246,0.04) 0%, transparent 50%),
+        var(--bg);
     }
     .msg {
-      max-width: 80%; padding: 8px 12px; border-radius: 8px;
-      font-size: 14.5px; line-height: 1.4; word-wrap: break-word;
-      animation: fadeIn 0.2s ease;
+      max-width: 70%; padding: 10px 14px; border-radius: 16px;
+      font-size: 14.5px; line-height: 1.45; word-wrap: break-word;
+      animation: fadeIn 0.2s ease; position: relative;
     }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(5px); }
+      from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .msg.eu { background: #005c4b; align-self: flex-end; border-bottom-right-radius: 2px; }
-    .msg.outro { background: #202c33; align-self: flex-start; border-bottom-left-radius: 2px; }
-    .msg .hora { font-size: 11px; color: rgba(233,237,239,0.55); margin-top: 4px; text-align: right; }
-    .msg.outro .hora { text-align: left; }
+    .msg.eu {
+      background: var(--msg-me); align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.outro {
+      background: var(--msg-other); align-self: flex-start;
+      border-bottom-left-radius: 4px; border: 1px solid var(--border);
+    }
+    .msg .meta {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 4px; margin-top: 4px;
+    }
+    .msg.outro .meta { justify-content: flex-start; }
+    .msg .hora { font-size: 11px; color: rgba(241,245,249,0.45); }
+    .msg .checks { font-size: 13px; color: rgba(241,245,249,0.4); letter-spacing: -2px; }
+    .msg .checks.lida { color: #60a5fa; }
     .msg img {
-      max-width: 100%; max-height: 280px; border-radius: 8px;
+      max-width: 100%; max-height: 280px; border-radius: 12px;
       display: block; margin-bottom: 4px; cursor: pointer;
     }
     .msg video {
-      max-width: 100%; max-height: 280px; border-radius: 8px;
+      max-width: 100%; max-height: 280px; border-radius: 12px;
       display: block; margin-bottom: 4px; background: #000;
     }
     .msg audio { width: 100%; min-width: 200px; margin: 4px 0; }
     .msg .arquivo {
       display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px; background: rgba(0,0,0,0.25);
-      border-radius: 8px; margin-bottom: 4px; text-decoration: none; color: #e9edef;
+      padding: 10px 12px; background: rgba(0,0,0,0.2);
+      border-radius: 10px; margin-bottom: 4px; text-decoration: none; color: var(--text);
     }
-    .msg .arquivo:hover { background: rgba(0,0,0,0.35); }
+
+    /* PAINEL DE NOTAS */
+    .notas-panel {
+      width: 300px; background: var(--bg2); border-left: 1px solid var(--border);
+      display: none; flex-direction: column; flex-shrink: 0;
+    }
+    .notas-panel.aberto { display: flex; }
+    .notas-header {
+      padding: 16px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .notas-header h3 { font-size: 14px; font-weight: 600; }
+    .notas-header button {
+      background: none; border: none; color: var(--text2);
+      font-size: 18px; cursor: pointer;
+    }
+    .notas-body { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .notas-body label { font-size: 12px; color: var(--text2); font-weight: 500; }
+    .notas-body textarea {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; color: var(--text);
+      font-size: 14px; line-height: 1.5; resize: none; outline: none;
+      font-family: inherit; min-height: 200px;
+    }
+    .notas-body textarea:focus { border-color: var(--accent); }
+    .btn-salvar-nota {
+      background: var(--accent); color: white; border: none;
+      padding: 12px; border-radius: 12px; font-size: 14px;
+      font-weight: 600; cursor: pointer;
+    }
+    .btn-salvar-nota:hover { background: #2563eb; }
+
+    /* INPUT */
     .input-area {
-      background: #202c33; padding: 8px 10px;
-      display: flex; gap: 4px; align-items: center;
-      border-top: 1px solid #2a3942; flex-shrink: 0;
+      background: var(--bg2); padding: 12px 16px;
+      display: flex; gap: 6px; align-items: center;
+      border-top: 1px solid var(--border); flex-shrink: 0;
     }
     .btn-midia {
-      background: transparent; border: none; color: #8696a0;
-      font-size: 20px; cursor: pointer; padding: 6px; line-height: 1; flex-shrink: 0;
+      background: var(--bg3); border: none; color: var(--text2);
+      width: 40px; height: 40px; border-radius: 12px;
+      font-size: 18px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; transition: 0.15s; flex-shrink: 0;
     }
-    .btn-midia:hover { color: #00a884; }
+    .btn-midia:hover { color: var(--accent); background: var(--border); }
     .btn-midia.gravando {
-      color: #ef4444;
+      color: white; background: var(--danger);
       animation: pulse 1s infinite;
     }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      50% { opacity: 0.5; }
     }
     #messageInput {
-      flex: 1; background: #2a3942; border: none; border-radius: 8px;
-      padding: 11px 14px; color: #e9edef; font-size: 15px; outline: none;
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 14px; padding: 12px 16px; color: var(--text);
+      font-size: 15px; outline: none;
     }
-    #messageInput::placeholder { color: #8696a0; }
+    #messageInput:focus { border-color: var(--accent); }
+    #messageInput::placeholder { color: var(--text2); }
     #sendBtn {
-      background: #00a884; border: none; width: 44px; height: 44px;
-      border-radius: 50%; color: white; font-size: 18px; cursor: pointer;
+      background: var(--accent); border: none; width: 44px; height: 44px;
+      border-radius: 14px; color: white; font-size: 18px; cursor: pointer;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: 0.15s;
     }
-    #sendBtn:disabled { background: #3b4a54; }
+    #sendBtn:hover { background: #2563eb; }
+    #sendBtn:disabled { background: var(--bg3); color: var(--text2); }
+
+    /* MODAL */
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.65);
       display: none; align-items: center; justify-content: center; z-index: 100;
+      backdrop-filter: blur(4px);
     }
     .modal-overlay.ativo { display: flex; }
     .modal {
-      background: #202c33; border-radius: 12px; padding: 24px;
-      width: 90%; max-width: 380px;
+      background: var(--bg2); border-radius: 20px; padding: 28px;
+      width: 90%; max-width: 400px; border: 1px solid var(--border);
     }
-    .modal h3 { font-size: 17px; margin-bottom: 16px; }
+    .modal h3 { font-size: 18px; margin-bottom: 18px; font-weight: 600; }
     .modal input {
-      width: 100%; background: #2a3942; border: none; border-radius: 8px;
-      padding: 12px 14px; color: #e9edef; font-size: 15px; outline: none; margin-bottom: 16px;
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 12px; padding: 13px 16px; color: var(--text);
+      font-size: 15px; outline: none; margin-bottom: 18px;
     }
+    .modal input:focus { border-color: var(--accent); }
     .modal-botoes { display: flex; gap: 10px; justify-content: flex-end; }
     .modal-botoes button {
-      padding: 9px 18px; border-radius: 6px; font-size: 14px; font-weight: 500;
-      cursor: pointer; border: none;
+      padding: 11px 20px; border-radius: 12px; font-size: 14px;
+      font-weight: 600; cursor: pointer; border: none;
     }
-    .btn-cancelar { background: transparent; color: #8696a0; }
-    .btn-criar { background: #00a884; color: white; }
+    .btn-cancelar { background: var(--bg3); color: var(--text2); }
+    .btn-criar { background: var(--accent); color: white; }
+
     .toast {
       position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: #00a884; color: white; padding: 10px 20px;
-      border-radius: 8px; font-size: 14px; z-index: 200; max-width: 90%;
+      background: var(--accent); color: white; padding: 12px 22px;
+      border-radius: 12px; font-size: 14px; font-weight: 500; z-index: 200;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     }
-    .toast.erro { background: #d32f2f; }
+    .toast.erro { background: var(--danger); }
     .uploading {
       position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: #202c33; color: #e9edef; padding: 10px 20px;
-      border-radius: 8px; font-size: 14px; z-index: 200; border: 1px solid #3b4a54;
+      background: var(--bg2); color: var(--text); padding: 12px 22px;
+      border-radius: 12px; font-size: 14px; z-index: 200; border: 1px solid var(--border);
     }
     .lightbox {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-      display: none; align-items: center; justify-content: center; z-index: 300;
-      padding: 20px;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+      display: none; align-items: center; justify-content: center; z-index: 300; padding: 20px;
     }
     .lightbox.ativo { display: flex; }
-    .lightbox img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+    .lightbox img { max-width: 100%; max-height: 90vh; border-radius: 12px; }
     .lightbox .fechar {
-      position: absolute; top: 16px; right: 16px; background: #333;
-      color: white; border: none; width: 40px; height: 40px;
-      border-radius: 50%; font-size: 20px; cursor: pointer;
+      position: absolute; top: 16px; right: 16px; background: var(--bg3);
+      color: white; border: none; width: 44px; height: 44px;
+      border-radius: 12px; font-size: 20px; cursor: pointer;
     }
-    @media (max-width: 700px) {
+
+    /* Proteção cliente */
+    body.modo-cliente {
+      -webkit-user-select: none !important; user-select: none !important;
+      -webkit-touch-callout: none !important;
+    }
+    body.modo-cliente img, body.modo-cliente video {
+      pointer-events: none; -webkit-user-drag: none;
+    }
+    body.modo-cliente #messageInput, body.modo-cliente input {
+      -webkit-user-select: text !important; user-select: text !important;
+      pointer-events: auto !important;
+    }
+
+    @media (max-width: 800px) {
       .sidebar { width: 100%; }
       .chat-area { display: none; }
+      .notas-panel { display: none !important; position: fixed; inset: 0; width: 100%; z-index: 50; }
+      .notas-panel.aberto { display: flex !important; }
       .app.chat-aberto .sidebar { display: none; }
       .app.chat-aberto .chat-area { display: flex; }
     }
     .btn-voltar {
-      display: none; background: transparent; border: none;
-      color: #e9edef; font-size: 20px; cursor: pointer; margin-right: 4px;
+      display: none; background: none; border: none;
+      color: var(--text); font-size: 22px; cursor: pointer; margin-right: 4px;
     }
-    @media (max-width: 700px) { .btn-voltar { display: block; } }
+    @media (max-width: 800px) { .btn-voltar { display: block; } }
     input[type="file"] { display: none; }
-
-    /* Proteção anti-print / anti-cópia (só no modo cliente) */
-    body.modo-cliente {
-      -webkit-user-select: none !important;
-      -moz-user-select: none !important;
-      -ms-user-select: none !important;
-      user-select: none !important;
-      -webkit-touch-callout: none !important;
-    }
-    body.modo-cliente img,
-    body.modo-cliente video,
-    body.modo-cliente audio {
-      pointer-events: none;
-      -webkit-user-drag: none;
-    }
-    body.modo-cliente #messages {
-      -webkit-user-select: none !important;
-      user-select: none !important;
-    }
-    /* Permite digitar no input mesmo com user-select none */
-    body.modo-cliente #messageInput,
-    body.modo-cliente input,
-    body.modo-cliente textarea {
-      -webkit-user-select: text !important;
-      user-select: text !important;
-      pointer-events: auto !important;
-    }
   </style>
 </head>
 <body>
   <div class="app" id="app">
     <div class="sidebar">
       <div class="sidebar-header">
-        <h1>Atendimento</h1>
+        <h1>Atendimento <span>Pro</span></h1>
         <button class="btn-novo" onclick="abrirModalNovo()">+ Novo</button>
       </div>
       <div class="search-box">
@@ -232,8 +345,8 @@
     <div class="chat-area" id="chatArea">
       <div class="chat-vazio" id="chatVazio">
         <div class="icone">💬</div>
-        <h2>Painel de Atendimento</h2>
-        <p>Selecione um cliente ou crie um novo.</p>
+        <h2>Atendimento Pro</h2>
+        <p>Selecione um cliente ou crie um novo<br>para começar o atendimento.</p>
       </div>
 
       <div id="chatAtivo" style="display:none; flex-direction:column; height:100%; flex:1; min-height:0;">
@@ -242,9 +355,12 @@
           <div class="avatar" id="chatAvatar">?</div>
           <div class="chat-header-info">
             <h2 id="chatNome">Cliente</h2>
-            <span>Online</span>
+            <div class="status-line" id="chatStatus">Offline</div>
           </div>
-          <button class="btn-copiar-link" onclick="copiarLinkCliente()">📋 Link</button>
+          <div class="header-actions">
+            <button class="btn-header" id="btnNotas" onclick="toggleNotas()" title="Anotações">📝 Notas</button>
+            <button class="btn-header" onclick="copiarLinkCliente()">🔗 Link</button>
+          </div>
         </div>
         <div id="messages"></div>
         <div class="input-area">
@@ -252,11 +368,24 @@
           <button class="btn-midia" onclick="escolherArquivo('video')" title="Vídeo">🎬</button>
           <button class="btn-midia" onclick="escolherArquivo('arquivo')" title="Arquivo">📎</button>
           <button class="btn-midia" id="btnAudio" onclick="toggleGravacao()" title="Gravar áudio">🎤</button>
-          <button class="btn-midia" onclick="escolherArquivo('audio')" title="Enviar áudio do celular">🎵</button>
+          <button class="btn-midia" onclick="escolherArquivo('audio')" title="Áudio arquivo">🎵</button>
           <input type="file" id="fileInput" onchange="enviarArquivo(event)">
           <input type="text" id="messageInput" placeholder="Digite uma mensagem..." autocomplete="off">
           <button id="sendBtn" onclick="enviarMensagem()">➤</button>
         </div>
+      </div>
+    </div>
+
+    <!-- PAINEL DE ANOTAÇÕES (só admin) -->
+    <div class="notas-panel" id="notasPanel">
+      <div class="notas-header">
+        <h3>📝 Anotações</h3>
+        <button onclick="toggleNotas()">✕</button>
+      </div>
+      <div class="notas-body">
+        <label>Observações sobre este cliente (só você vê)</label>
+        <textarea id="notasTexto" placeholder="Ex: Cliente prefere contato de manhã. Já comprou 2x. Cuidado com..."></textarea>
+        <button class="btn-salvar-nota" onclick="salvarNotas()">Salvar anotações</button>
       </div>
     </div>
   </div>
@@ -280,93 +409,9 @@
   <script>
     const SUPABASE_URL = 'https://hthcmhbcgmwprhgubiuy.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_Z_4elpCD5ygI-SV_2ljJug_gHW0ipa2';
-    
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ========== CRIPTOGRAFIA (AES-GCM) ==========
-    // Chave secreta do sistema — troque se quiser
     const CHAVE_SECRETA = 'AtendimentoSecreto2026!';
-
-    async function derivarChave(conversaId) {
-      const enc = new TextEncoder();
-      const material = await crypto.subtle.importKey(
-        'raw',
-        enc.encode(CHAVE_SECRETA + ':' + conversaId),
-        'PBKDF2',
-        false,
-        ['deriveKey']
-      );
-      return crypto.subtle.deriveKey(
-        {
-          name: 'PBKDF2',
-          salt: enc.encode('sal-atendimento-v1'),
-          iterations: 100000,
-          hash: 'SHA-256'
-        },
-        material,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt', 'decrypt']
-      );
-    }
-
-    async function criptografarTexto(texto, conversaId) {
-      const key = await derivarChave(conversaId);
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const encoded = new TextEncoder().encode(texto);
-      const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
-      // Formato: enc:base64(iv + ciphertext)
-      const combined = new Uint8Array(iv.length + cipher.byteLength);
-      combined.set(iv, 0);
-      combined.set(new Uint8Array(cipher), iv.length);
-      let binary = '';
-      combined.forEach(b => binary += String.fromCharCode(b));
-      return 'enc:' + btoa(binary);
-    }
-
-    async function descriptografarTexto(texto, conversaId) {
-      if (!texto || !texto.startsWith('enc:')) return texto;
-      try {
-        const key = await derivarChave(conversaId);
-        const raw = atob(texto.slice(4));
-        const bytes = new Uint8Array(raw.length);
-        for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-        const iv = bytes.slice(0, 12);
-        const data = bytes.slice(12);
-        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
-        return new TextDecoder().decode(plain);
-      } catch (e) {
-        console.error('Falha ao descriptografar:', e);
-        return '[mensagem criptografada]';
-      }
-    }
-
-    async function criptografarBlob(blob, conversaId) {
-      const key = await derivarChave(conversaId);
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const buffer = await blob.arrayBuffer();
-      const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, buffer);
-      const combined = new Uint8Array(iv.length + cipher.byteLength);
-      combined.set(iv, 0);
-      combined.set(new Uint8Array(cipher), iv.length);
-      return new Blob([combined], { type: 'application/octet-stream' });
-    }
-
-    async function descriptografarBlob(encryptedBlob, conversaId, mimeType) {
-      try {
-        const key = await derivarChave(conversaId);
-        const buffer = await encryptedBlob.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        const iv = bytes.slice(0, 12);
-        const data = bytes.slice(12);
-        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
-        return new Blob([plain], { type: mimeType || 'application/octet-stream' });
-      } catch (e) {
-        console.error('Falha ao descriptografar arquivo:', e);
-        return null;
-      }
-    }
-
 
     let conversas = [];
     let conversaAtual = null;
@@ -377,222 +422,117 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
     let audioChunks = [];
     let gravando = false;
     let streamAudio = null;
+    let heartbeatInterval = null;
+    let statusInterval = null;
 
-    // Pede permissões ao carregar (câmera/microfone)
-    async function pedirPermissoes() {
+    // ========== CRIPTOGRAFIA ==========
+    async function derivarChave(conversaId) {
+      const enc = new TextEncoder();
+      const material = await crypto.subtle.importKey('raw', enc.encode(CHAVE_SECRETA + ':' + conversaId), 'PBKDF2', false, ['deriveKey']);
+      return crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt: enc.encode('sal-atendimento-v1'), iterations: 100000, hash: 'SHA-256' },
+        material, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+      );
+    }
+    async function criptografarTexto(texto, conversaId) {
+      const key = await derivarChave(conversaId);
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(texto));
+      const combined = new Uint8Array(iv.length + cipher.byteLength);
+      combined.set(iv, 0); combined.set(new Uint8Array(cipher), iv.length);
+      let binary = ''; combined.forEach(b => binary += String.fromCharCode(b));
+      return 'enc:' + btoa(binary);
+    }
+    async function descriptografarTexto(texto, conversaId) {
+      if (!texto || !texto.startsWith('enc:')) return texto;
       try {
-        // Só pede se o navegador suportar
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          // Não força agora para não assustar; pede quando clicar no áudio/foto
-        }
-      } catch(e) {}
+        const key = await derivarChave(conversaId);
+        const raw = atob(texto.slice(4));
+        const bytes = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes.slice(0,12) }, key, bytes.slice(12));
+        return new TextDecoder().decode(plain);
+      } catch(e) { return '[criptografado]'; }
+    }
+    async function criptografarBlob(blob, conversaId) {
+      const key = await derivarChave(conversaId);
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, await blob.arrayBuffer());
+      const combined = new Uint8Array(iv.length + cipher.byteLength);
+      combined.set(iv, 0); combined.set(new Uint8Array(cipher), iv.length);
+      return new Blob([combined], { type: 'application/octet-stream' });
+    }
+    async function descriptografarBlob(encryptedBlob, conversaId, mimeType) {
+      try {
+        const key = await derivarChave(conversaId);
+        const bytes = new Uint8Array(await encryptedBlob.arrayBuffer());
+        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes.slice(0,12) }, key, bytes.slice(12));
+        return new Blob([plain], { type: mimeType || 'application/octet-stream' });
+      } catch(e) { return null; }
     }
 
-    // ========== GRAVAÇÃO DE ÁUDIO ==========
-    
-    // ========== PROTEÇÃO ANTI-PRINT (só cliente) ==========
+    // ========== PROTEÇÃO CLIENTE ==========
     function ativarProtecaoCliente() {
-      // Bloqueia clique direito
-      document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        return false;
-      });
-
-      // Bloqueia atalhos de print / copiar / salvar
-      document.addEventListener('keydown', function(e) {
-        // PrintScreen, Ctrl+P, Ctrl+S, Ctrl+C, Ctrl+A, Ctrl+U, F12
-        if (
-          e.key === 'PrintScreen' ||
-          (e.ctrlKey && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S' || e.key === 'c' || e.key === 'C' || e.key === 'a' || e.key === 'A' || e.key === 'u' || e.key === 'U')) ||
-          (e.metaKey && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S' || e.key === 'c' || e.key === 'C')) ||
-          e.key === 'F12'
-        ) {
-          e.preventDefault();
-          mostrarToast('Ação bloqueada', true);
-          return false;
+      document.addEventListener('contextmenu', e => e.preventDefault());
+      document.addEventListener('keydown', e => {
+        if (e.key === 'PrintScreen' || (e.ctrlKey && ['p','P','s','S','c','C','a','A','u','U'].includes(e.key)) || e.key === 'F12') {
+          e.preventDefault(); mostrarToast('Ação bloqueada', true);
         }
       });
-
-      // Bloqueia arrastar imagens
-      document.addEventListener('dragstart', function(e) {
-        e.preventDefault();
-        return false;
-      });
-
-      // Tenta detectar perda de foco (às vezes usado em print)
-      document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-          // Opcional: esconder conteúdo quando sair da aba
-          const msgs = document.getElementById('messages');
-          if (msgs) msgs.style.filter = 'blur(20px)';
-        } else {
-          const msgs = document.getElementById('messages');
-          if (msgs) msgs.style.filter = 'none';
-        }
+      document.addEventListener('dragstart', e => e.preventDefault());
+      document.addEventListener('visibilitychange', () => {
+        const msgs = document.getElementById('messages');
+        if (msgs) msgs.style.filter = document.hidden ? 'blur(20px)' : 'none';
       });
     }
 
-
-    async function toggleGravacao() {
-      if (gravando) {
-        pararGravacao();
-      } else {
-        await iniciarGravacao();
-      }
+    // ========== ONLINE / HEARTBEAT ==========
+    function iniciarHeartbeat() {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      const ping = async () => {
+        if (!conversaAtual || !isCliente) return;
+        await supabaseClient.from('conversas')
+          .update({ last_seen_cliente: new Date().toISOString() })
+          .eq('id', conversaAtual.id);
+      };
+      ping();
+      heartbeatInterval = setInterval(ping, 20000);
     }
 
-    async function iniciarGravacao() {
-      if (!conversaAtual) {
-        mostrarToast('Abra uma conversa primeiro', true);
+    function iniciarMonitorStatus() {
+      if (statusInterval) clearInterval(statusInterval);
+      const check = async () => {
+        if (!conversaAtual || isCliente) return;
+        const { data } = await supabaseClient.from('conversas')
+          .select('last_seen_cliente').eq('id', conversaAtual.id).single();
+        atualizarStatusUI(data?.last_seen_cliente);
+      };
+      check();
+      statusInterval = setInterval(check, 15000);
+    }
+
+    function atualizarStatusUI(lastSeen) {
+      const el = document.getElementById('chatStatus');
+      if (!el) return;
+      if (!lastSeen) {
+        el.textContent = 'Offline';
+        el.className = 'status-line';
         return;
       }
-      try {
-        // Pede permissão do microfone
-        mostrarToast('Pedindo permissão do microfone...');
-        streamAudio = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true
-          }
-        });
-        
-        audioChunks = [];
-        const options = {};
-        // Prefere formatos mais compatíveis
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-          options.mimeType = 'audio/webm;codecs=opus';
-        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          options.mimeType = 'audio/mp4';
-        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
-          options.mimeType = 'audio/ogg';
-        }
-
-        mediaRecorder = new MediaRecorder(streamAudio, options);
-        
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) audioChunks.push(e.data);
-        };
-
-        mediaRecorder.onstop = async () => {
-          const mime = mediaRecorder.mimeType || 'audio/webm';
-          const blob = new Blob(audioChunks, { type: mime });
-          
-          // Para as tracks do microfone
-          if (streamAudio) {
-            streamAudio.getTracks().forEach(t => t.stop());
-            streamAudio = null;
-          }
-
-          if (blob.size < 1000) {
-            mostrarToast('Áudio muito curto', true);
-            return;
-          }
-
-          await enviarBlobAudio(blob, mime);
-        };
-
-        mediaRecorder.start(250);
-        gravando = true;
-        
-        const btn = document.getElementById('btnAudio');
-        if (btn) {
-          btn.classList.add('gravando');
-          btn.textContent = '⏹';
-          btn.title = 'Parar gravação';
-        }
-        mostrarToast('🔴 GRAVANDO — toque no microfone de novo para enviar');
-
-      } catch (err) {
-        console.error(err);
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          mostrarToast('Permissão de microfone negada. Ative nas configurações do navegador.', true);
-        } else {
-          mostrarToast('Erro ao acessar microfone: ' + err.message, true);
-        }
+      const diff = Date.now() - new Date(lastSeen).getTime();
+      if (diff < 45000) {
+        el.textContent = 'Online';
+        el.className = 'status-line online';
+      } else if (diff < 300000) {
+        el.textContent = 'Visto recentemente';
+        el.className = 'status-line';
+      } else {
+        el.textContent = 'Offline';
+        el.className = 'status-line';
       }
     }
 
-    function pararGravacao() {
-      if (mediaRecorder && gravando) {
-        mediaRecorder.stop();
-        gravando = false;
-        const btn = document.getElementById('btnAudio');
-        if (btn) {
-          btn.classList.remove('gravando');
-          btn.textContent = '🎤';
-          btn.title = 'Gravar áudio';
-        }
-      }
-    }
-
-    async function enviarBlobAudio(blob, mime) {
-      const toast = document.createElement('div');
-      toast.className = 'uploading';
-      toast.textContent = 'Enviando áudio...';
-      document.body.appendChild(toast);
-
-      try {
-        let ext = 'webm';
-        if (mime.includes('mp4')) ext = 'm4a';
-        else if (mime.includes('ogg')) ext = 'ogg';
-        else if (mime.includes('mpeg')) ext = 'mp3';
-
-        const nomeArquivo = conversaAtual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
-
-        let blobFinal = blob;
-        let mimeFinal = mime;
-        let nomeFinal = nomeArquivo;
-        const remetente = isCliente ? 'cliente' : 'agente';
-
-        if (remetente === 'agente') {
-          blobFinal = await criptografarBlob(blob, conversaAtual.id);
-          mimeFinal = 'application/octet-stream';
-          nomeFinal = nomeArquivo + '.enc';
-        }
-
-        const { error: uploadError } = await supabaseClient.storage
-          .from('midias')
-          .upload(nomeFinal, blobFinal, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: mimeFinal
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabaseClient.storage
-          .from('midias')
-          .getPublicUrl(nomeFinal);
-
-        const url = urlData.publicUrl;
-        let textoAudio = 'Áudio';
-        if (remetente === 'agente') {
-          try { textoAudio = await criptografarTexto('Áudio', conversaAtual.id); } catch(e) {}
-        }
-
-        const { error: msgError } = await supabaseClient.from('mensagens').insert([{
-          conversa_id: conversaAtual.id,
-          texto: textoAudio,
-          remetente: remetente,
-          tipo: 'audio',
-          url_midia: url
-        }]);
-
-        if (msgError) throw msgError;
-
-        await supabaseClient.from('conversas')
-          .update({ updated_at: new Date().toISOString() })
-          .eq('id', conversaAtual.id);
-
-        mostrarToast('Áudio enviado!');
-      } catch (err) {
-        console.error(err);
-        mostrarToast('Erro ao enviar áudio: ' + (err.message || err), true);
-      } finally {
-        toast.remove();
-      }
-    }
-
+    // ========== INIT ==========
     function detectarModo() {
       const params = new URLSearchParams(window.location.search);
       const sala = params.get('sala');
@@ -600,17 +540,17 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       if (sala && isCliente) {
         document.querySelector('.sidebar').style.display = 'none';
         document.body.classList.add('modo-cliente');
+        const btnNotas = document.getElementById('btnNotas');
+        if (btnNotas) btnNotas.style.display = 'none';
         ativarProtecaoCliente();
         abrirConversaPorId(sala);
       } else {
         carregarConversas();
       }
-      pedirPermissoes();
     }
 
     async function carregarConversas() {
-      const { data, error } = await supabaseClient
-        .from('conversas').select('*').order('updated_at', { ascending: false });
+      const { data, error } = await supabaseClient.from('conversas').select('*').order('updated_at', { ascending: false });
       if (error) {
         document.getElementById('listaClientes').innerHTML = '<div class="vazio-lista">Erro ao carregar</div>';
         return;
@@ -623,50 +563,44 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       const container = document.getElementById('listaClientes');
       let lista = filtro ? conversas.filter(c => c.nome.toLowerCase().includes(filtro.toLowerCase())) : conversas;
       if (lista.length === 0) {
-        container.innerHTML = '<div class="vazio-lista">Nenhum cliente ainda.<br>Clique em "+ Novo".</div>';
+        container.innerHTML = '<div class="vazio-lista">Nenhum cliente ainda.<br>Clique em "+ Novo" para começar.</div>';
         return;
       }
       container.innerHTML = lista.map(c => {
         const ativo = conversaAtual && conversaAtual.id === c.id ? 'ativo' : '';
+        const online = c.last_seen_cliente && (Date.now() - new Date(c.last_seen_cliente).getTime() < 45000);
         return `<div class="cliente-item ${ativo}" onclick="abrirConversa('${c.id}')">
-          <div class="avatar">${c.nome.charAt(0).toUpperCase()}</div>
+          <div class="avatar">${c.nome.charAt(0).toUpperCase()}${online ? '<span class="online-dot"></span>' : ''}</div>
           <div class="cliente-info">
             <div class="cliente-nome">${escapeHtml(c.nome)}</div>
-            <div class="cliente-preview">Clique para abrir</div>
+            <div class="cliente-preview">${c.notas ? '📝 Tem anotações' : 'Clique para abrir'}</div>
           </div>
-          <div class="cliente-hora">${formatarHora(c.updated_at)}</div>
+          <div class="cliente-meta"><div class="cliente-hora">${formatarHora(c.updated_at)}</div></div>
         </div>`;
       }).join('');
     }
 
-    function filtrarClientes() {
-      renderizarLista(document.getElementById('busca').value);
-    }
+    function filtrarClientes() { renderizarLista(document.getElementById('busca').value); }
 
     function abrirModalNovo() {
       document.getElementById('modalNovo').classList.add('ativo');
       document.getElementById('inputNome').value = '';
       setTimeout(() => document.getElementById('inputNome').focus(), 100);
     }
-    function fecharModal() {
-      document.getElementById('modalNovo').classList.remove('ativo');
-    }
+    function fecharModal() { document.getElementById('modalNovo').classList.remove('ativo'); }
 
     async function criarCliente() {
       const nome = document.getElementById('inputNome').value.trim();
       if (!nome) return alert('Digite o nome do cliente');
       const id = Math.random().toString(36).substring(2, 10) + Date.now().toString(36).slice(-4);
-      const { error } = await supabaseClient.from('conversas').insert([{ id, nome }]);
+      const { error } = await supabaseClient.from('conversas').insert([{ id, nome, notas: '' }]);
       if (error) return alert('Erro: ' + error.message);
       fecharModal();
       await carregarConversas();
       abrirConversa(id);
       mostrarToast('Cliente criado!');
     }
-
-    document.getElementById('inputNome').addEventListener('keypress', e => {
-      if (e.key === 'Enter') criarCliente();
-    });
+    document.getElementById('inputNome').addEventListener('keypress', e => { if (e.key === 'Enter') criarCliente(); });
 
     async function abrirConversa(id) {
       let conversa = conversas.find(c => c.id === id);
@@ -678,8 +612,10 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
         conversaAtual = conversa;
       }
       mostrarChatUI();
+      document.getElementById('notasTexto').value = conversaAtual.notas || '';
       await carregarMensagens();
       escutarMensagens();
+      iniciarMonitorStatus();
     }
 
     async function abrirConversaPorId(id) {
@@ -691,11 +627,17 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       conversas = [data];
       conversaAtual = data;
       document.querySelector('.sidebar').style.display = 'none';
-      const btn = document.querySelector('.btn-copiar-link');
-      if (btn) btn.style.display = 'none';
+      const btnLink = document.querySelector('.header-actions');
+      if (btnLink) {
+        const linkBtn = btnLink.querySelector('[onclick="copiarLinkCliente()"]');
+        if (linkBtn) linkBtn.style.display = 'none';
+      }
       mostrarChatUI();
       await carregarMensagens();
       escutarMensagens();
+      iniciarHeartbeat();
+      // Marca mensagens do agente como lidas
+      marcarMensagensLidas();
     }
 
     function mostrarChatUI() {
@@ -710,47 +652,98 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       document.getElementById('chatAvatar').textContent = conversaAtual.nome.charAt(0).toUpperCase();
       document.getElementById('app').classList.add('chat-aberto');
       renderizarLista(document.getElementById('busca')?.value || '');
+      atualizarStatusUI(conversaAtual.last_seen_cliente);
       setTimeout(() => document.getElementById('messageInput')?.focus(), 200);
     }
 
     function fecharChatMobile() {
       document.getElementById('app').classList.remove('chat-aberto');
+      document.getElementById('notasPanel').classList.remove('aberto');
       conversaAtual = null;
-      if (channelMensagens) {
-        supabaseClient.removeChannel(channelMensagens);
-        channelMensagens = null;
+      if (channelMensagens) { supabaseClient.removeChannel(channelMensagens); channelMensagens = null; }
+      if (statusInterval) clearInterval(statusInterval);
+    }
+
+    // ========== NOTAS ==========
+    function toggleNotas() {
+      if (isCliente) return;
+      const panel = document.getElementById('notasPanel');
+      const btn = document.getElementById('btnNotas');
+      panel.classList.toggle('aberto');
+      btn.classList.toggle('ativo');
+      if (panel.classList.contains('aberto') && conversaAtual) {
+        document.getElementById('notasTexto').value = conversaAtual.notas || '';
       }
     }
 
+    async function salvarNotas() {
+      if (!conversaAtual || isCliente) return;
+      const notas = document.getElementById('notasTexto').value;
+      const { error } = await supabaseClient.from('conversas')
+        .update({ notas }).eq('id', conversaAtual.id);
+      if (error) return mostrarToast('Erro ao salvar', true);
+      conversaAtual.notas = notas;
+      // Atualiza na lista local
+      const c = conversas.find(x => x.id === conversaAtual.id);
+      if (c) c.notas = notas;
+      renderizarLista(document.getElementById('busca')?.value || '');
+      mostrarToast('Anotações salvas!');
+    }
+
+    // ========== MENSAGENS ==========
     async function carregarMensagens() {
       if (!conversaAtual) return;
-      const { data, error } = await supabaseClient
-        .from('mensagens').select('*')
-        .eq('conversa_id', conversaAtual.id)
-        .order('created_at', { ascending: true });
+      const { data, error } = await supabaseClient.from('mensagens').select('*')
+        .eq('conversa_id', conversaAtual.id).order('created_at', { ascending: true });
       const container = document.getElementById('messages');
       container.innerHTML = '';
       if (error) return console.error(error);
-      (data || []).forEach(msg => adicionarMensagemNaTela(msg));
+      for (const msg of (data || [])) {
+        await adicionarMensagemNaTela(msg);
+      }
       scrollParaBaixo();
+      if (isCliente) marcarMensagensLidas();
+    }
+
+    async function marcarMensagensLidas() {
+      if (!conversaAtual || !isCliente) return;
+      await supabaseClient.from('mensagens')
+        .update({ lida: true })
+        .eq('conversa_id', conversaAtual.id)
+        .eq('remetente', 'agente')
+        .eq('lida', false);
     }
 
     function escutarMensagens() {
       if (channelMensagens) supabaseClient.removeChannel(channelMensagens);
       if (!conversaAtual) return;
-      channelMensagens = supabaseClient
-        .channel('msgs-' + conversaAtual.id)
+      channelMensagens = supabaseClient.channel('msgs-' + conversaAtual.id)
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'mensagens',
           filter: 'conversa_id=eq.' + conversaAtual.id
-        }, payload => {
-          adicionarMensagemNaTela(payload.new);
+        }, async (payload) => {
+          await adicionarMensagemNaTela(payload.new);
           scrollParaBaixo();
+          if (isCliente && payload.new.remetente === 'agente') {
+            // Marca como lida imediatamente
+            await supabaseClient.from('mensagens').update({ lida: true }).eq('id', payload.new.id);
+          }
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'mensagens',
+          filter: 'conversa_id=eq.' + conversaAtual.id
+        }, (payload) => {
+          // Atualiza checks de leitura
+          const el = document.querySelector('[data-id="' + payload.new.id + '"] .checks');
+          if (el && payload.new.lida) {
+            el.classList.add('lida');
+            el.textContent = '✓✓';
+          }
         })
         .subscribe();
     }
 
-    function adicionarMensagemNaTela(msg) {
+    async function adicionarMensagemNaTela(msg) {
       if (document.querySelector('[data-id="' + msg.id + '"]')) return;
       const div = document.createElement('div');
       const souEu = isCliente ? (msg.remetente === 'cliente') : (msg.remetente === 'agente');
@@ -760,137 +753,83 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       const tipo = (msg.tipo || 'texto').toLowerCase();
       let url = (msg.url_midia || '').trim();
       const hora = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      const isEncryptedFile = url.endsWith('.enc') || url.includes('.enc');
+      const isEncryptedFile = url.includes('.enc');
 
-      // Processa de forma assíncrona (descriptografia)
-      (async () => {
-        let texto = msg.texto || '';
-        
-        // Descriptografa texto se necessário
-        if (texto.startsWith('enc:') && conversaAtual) {
-          texto = await descriptografarTexto(texto, conversaAtual.id);
+      let texto = msg.texto || '';
+      if (texto.startsWith('enc:') && conversaAtual) {
+        texto = await descriptografarTexto(texto, conversaAtual.id);
+      }
+
+      if (url && (tipo === 'imagem' || tipo === 'image' || tipo === 'foto')) {
+        if (isEncryptedFile && conversaAtual) {
+          try {
+            const resp = await fetch(url);
+            const dec = await descriptografarBlob(await resp.blob(), conversaAtual.id, 'image/jpeg');
+            if (dec) url = URL.createObjectURL(dec);
+          } catch(e) {}
         }
-
-        if (url && (tipo === 'imagem' || tipo === 'image' || tipo === 'foto')) {
-          if (isEncryptedFile && conversaAtual) {
-            try {
-              const resp = await fetch(url);
-              const encBlob = await resp.blob();
-              const decBlob = await descriptografarBlob(encBlob, conversaAtual.id, 'image/jpeg');
-              if (decBlob) {
-                url = URL.createObjectURL(decBlob);
-              }
-            } catch (e) {
-              console.error('Erro dec img:', e);
-            }
-          }
-          const img = document.createElement('img');
-          img.src = url;
-          img.alt = 'imagem';
-          img.loading = 'lazy';
-          img.style.maxWidth = '100%';
-          img.style.maxHeight = '280px';
-          img.style.borderRadius = '8px';
-          img.style.display = 'block';
-          img.style.marginBottom = '4px';
-          img.style.cursor = 'pointer';
-          img.onclick = function() { abrirLightbox(url); };
-          img.onerror = function() {
-            const a = document.createElement('a');
-            a.href = msg.url_midia;
-            a.target = '_blank';
-            a.style.color = '#7dd3c0';
-            a.textContent = '📷 Abrir imagem';
-            img.replaceWith(a);
-          };
-          div.insertBefore(img, div.firstChild);
-        } else if (url && tipo === 'video') {
-          if (isEncryptedFile && conversaAtual) {
-            try {
-              const resp = await fetch(url);
-              const encBlob = await resp.blob();
-              const decBlob = await descriptografarBlob(encBlob, conversaAtual.id, 'video/mp4');
-              if (decBlob) url = URL.createObjectURL(decBlob);
-            } catch (e) { console.error(e); }
-          }
-          const video = document.createElement('video');
-          video.src = url;
-          video.controls = true;
-          video.playsInline = true;
-          video.preload = 'metadata';
-          video.style.maxWidth = '100%';
-          video.style.maxHeight = '280px';
-          video.style.borderRadius = '8px';
-          video.style.display = 'block';
-          video.style.marginBottom = '4px';
-          video.style.background = '#000';
-          div.insertBefore(video, div.firstChild);
-        } else if (url && tipo === 'audio') {
-          if (isEncryptedFile && conversaAtual) {
-            try {
-              const resp = await fetch(url);
-              const encBlob = await resp.blob();
-              const decBlob = await descriptografarBlob(encBlob, conversaAtual.id, 'audio/webm');
-              if (decBlob) url = URL.createObjectURL(decBlob);
-            } catch (e) { console.error(e); }
-          }
-          const wrap = document.createElement('div');
-          wrap.style.display = 'flex';
-          wrap.style.flexDirection = 'column';
-          wrap.style.gap = '6px';
-          wrap.style.minWidth = '220px';
-          const audio = document.createElement('audio');
-          audio.src = url;
-          audio.controls = true;
-          audio.preload = 'auto';
-          audio.style.width = '100%';
-          audio.load();
-          audio.onerror = function() {
-            const a = document.createElement('a');
-            a.href = msg.url_midia;
-            a.target = '_blank';
-            a.style.color = '#7dd3c0';
-            a.textContent = '🎤 Baixar / abrir áudio';
-            wrap.innerHTML = '';
-            wrap.appendChild(a);
-          };
-          wrap.appendChild(audio);
-          div.insertBefore(wrap, div.firstChild);
-        } else if (url) {
-          const a = document.createElement('a');
-          a.className = 'arquivo';
-          a.href = url;
-          a.target = '_blank';
-          const nomeArquivo = texto.startsWith('enc:') ? 'Arquivo' : (texto || 'Baixar arquivo');
-          a.innerHTML = '<span style="font-size:24px">📄</span><span>' + escapeHtml(nomeArquivo) + '</span>';
-          div.insertBefore(a, div.firstChild);
+        const img = document.createElement('img');
+        img.src = url; img.alt = 'imagem'; img.loading = 'lazy';
+        img.onclick = () => abrirLightbox(url);
+        img.onerror = function() {
+          const a = document.createElement('a'); a.href = msg.url_midia; a.target = '_blank';
+          a.style.color = '#60a5fa'; a.textContent = '📷 Abrir imagem'; img.replaceWith(a);
+        };
+        div.appendChild(img);
+      } else if (url && tipo === 'video') {
+        if (isEncryptedFile && conversaAtual) {
+          try {
+            const resp = await fetch(url);
+            const dec = await descriptografarBlob(await resp.blob(), conversaAtual.id, 'video/mp4');
+            if (dec) url = URL.createObjectURL(dec);
+          } catch(e) {}
         }
-
-        if (texto && tipo === 'texto') {
-          // Insere o texto no início (antes da hora)
-          const span = document.createElement('span');
-          span.textContent = texto;
-          const horaEl = div.querySelector('.hora');
-          if (horaEl) div.insertBefore(span, horaEl);
-          else div.appendChild(span);
+        const video = document.createElement('video');
+        video.src = url; video.controls = true; video.playsInline = true; video.preload = 'metadata';
+        video.style.maxWidth = '100%'; video.style.maxHeight = '280px'; video.style.borderRadius = '12px';
+        video.style.display = 'block'; video.style.background = '#000';
+        div.appendChild(video);
+      } else if (url && tipo === 'audio') {
+        if (isEncryptedFile && conversaAtual) {
+          try {
+            const resp = await fetch(url);
+            const dec = await descriptografarBlob(await resp.blob(), conversaAtual.id, 'audio/webm');
+            if (dec) url = URL.createObjectURL(dec);
+          } catch(e) {}
         }
+        const audio = document.createElement('audio');
+        audio.src = url; audio.controls = true; audio.preload = 'auto';
+        audio.style.width = '100%'; audio.style.minWidth = '200px';
+        div.appendChild(audio);
+      } else if (url) {
+        const a = document.createElement('a');
+        a.className = 'arquivo'; a.href = url; a.target = '_blank';
+        a.innerHTML = '<span style="font-size:22px">📄</span><span>' + escapeHtml(texto || 'Arquivo') + '</span>';
+        div.appendChild(a);
+      }
 
-        // Cadeado visual para mensagens criptografadas do admin
-        if (msg.remetente === 'agente' && (msg.texto || '').startsWith('enc:')) {
-          const lock = document.createElement('span');
-          lock.textContent = ' 🔒';
-          lock.style.fontSize = '11px';
-          lock.title = 'Mensagem criptografada';
-          const horaEl = div.querySelector('.hora');
-          if (horaEl) horaEl.appendChild(lock);
-        }
-      })();
+      if (texto && tipo === 'texto') {
+        const span = document.createElement('span');
+        span.textContent = texto;
+        div.appendChild(span);
+      }
 
-      const horaDiv = document.createElement('div');
-      horaDiv.className = 'hora';
-      horaDiv.textContent = hora;
-      div.appendChild(horaDiv);
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const horaEl = document.createElement('span');
+      horaEl.className = 'hora';
+      horaEl.textContent = hora;
+      meta.appendChild(horaEl);
 
+      // Checks de leitura (só mensagens do agente, vistas pelo admin)
+      if (msg.remetente === 'agente' && !isCliente) {
+        const checks = document.createElement('span');
+        checks.className = 'checks' + (msg.lida ? ' lida' : '');
+        checks.textContent = msg.lida ? '✓✓' : '✓';
+        meta.appendChild(checks);
+      }
+
+      div.appendChild(meta);
       document.getElementById('messages').appendChild(div);
     }
 
@@ -898,9 +837,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       document.getElementById('lightboxImg').src = url;
       document.getElementById('lightbox').classList.add('ativo');
     }
-    function fecharLightbox() {
-      document.getElementById('lightbox').classList.remove('ativo');
-    }
+    function fecharLightbox() { document.getElementById('lightbox').classList.remove('ativo'); }
 
     async function enviarMensagem() {
       if (!conversaAtual) return;
@@ -911,25 +848,16 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       input.value = '';
       document.getElementById('sendBtn').disabled = true;
 
-      // Criptografa se for o administrador
       let textoFinal = texto;
       if (remetente === 'agente') {
-        try {
-          textoFinal = await criptografarTexto(texto, conversaAtual.id);
-        } catch (e) {
-          console.error(e);
-          mostrarToast('Erro ao criptografar', true);
-          document.getElementById('sendBtn').disabled = false;
-          return;
-        }
+        try { textoFinal = await criptografarTexto(texto, conversaAtual.id); }
+        catch(e) { mostrarToast('Erro ao criptografar', true); document.getElementById('sendBtn').disabled = false; return; }
       }
 
       const { error } = await supabaseClient.from('mensagens').insert([{
-        conversa_id: conversaAtual.id, texto: textoFinal, remetente, tipo: 'texto'
+        conversa_id: conversaAtual.id, texto: textoFinal, remetente, tipo: 'texto', lida: false
       }]);
-      await supabaseClient.from('conversas')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', conversaAtual.id);
+      await supabaseClient.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', conversaAtual.id);
       document.getElementById('sendBtn').disabled = false;
       input.focus();
       if (error) mostrarToast('Erro: ' + error.message, true);
@@ -949,111 +877,135 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       const file = event.target.files && event.target.files[0];
       event.target.value = '';
       if (!file || !conversaAtual) return;
-
-      if (file.size > 50 * 1024 * 1024) {
-        mostrarToast('Arquivo muito grande (máx 50MB)', true);
-        return;
-      }
+      if (file.size > 50 * 1024 * 1024) { mostrarToast('Arquivo muito grande (máx 50MB)', true); return; }
 
       const toast = document.createElement('div');
-      toast.className = 'uploading';
-      toast.textContent = 'Enviando... aguarde';
+      toast.className = 'uploading'; toast.textContent = 'Enviando...';
       document.body.appendChild(toast);
 
       try {
-        // Detecta tipo pelo MIME se necessário
         let tipo = tipoArquivoAtual;
         if (file.type.startsWith('image/')) tipo = 'imagem';
         else if (file.type.startsWith('video/')) tipo = 'video';
         else if (file.type.startsWith('audio/')) tipo = 'audio';
-        else if (tipoArquivoAtual === 'arquivo') tipo = 'arquivo';
 
-        const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
-        const nomeArquivo = conversaAtual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
-
-        // Upload
-        // Define content-type correto para áudio
         let contentType = file.type || 'application/octet-stream';
-        if (tipo === 'audio') {
-          if (!contentType || contentType === 'application/octet-stream') {
-            if (ext === 'mp3') contentType = 'audio/mpeg';
-            else if (ext === 'ogg') contentType = 'audio/ogg';
-            else if (ext === 'wav') contentType = 'audio/wav';
-            else if (ext === 'm4a' || ext === 'mp4') contentType = 'audio/mp4';
-            else if (ext === 'webm') contentType = 'audio/webm';
-            else contentType = 'audio/mpeg';
-          }
-        } else if (tipo === 'imagem' && (!contentType || contentType === 'application/octet-stream')) {
-          contentType = 'image/jpeg';
+        const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+        if (tipo === 'audio' && (!contentType || contentType === 'application/octet-stream')) {
+          if (ext === 'mp3') contentType = 'audio/mpeg';
+          else if (ext === 'm4a') contentType = 'audio/mp4';
+          else contentType = 'audio/webm';
         }
 
+        let nomeArquivo = conversaAtual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
         let fileToUpload = file;
         let contentTypeFinal = contentType;
         let nomeFinal = nomeArquivo;
+        const remetente = isCliente ? 'cliente' : 'agente';
 
-        // Criptografa mídia se for o administrador
-        const remetenteCheck = isCliente ? 'cliente' : 'agente';
-        if (remetenteCheck === 'agente') {
+        if (remetente === 'agente') {
           fileToUpload = await criptografarBlob(file, conversaAtual.id);
           contentTypeFinal = 'application/octet-stream';
-          // marca arquivo como criptografado no nome
           nomeFinal = nomeArquivo + '.enc';
         }
 
-        const { data: uploadData, error: uploadError } = await supabaseClient.storage
-          .from('midias')
-          .upload(nomeFinal, fileToUpload, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: contentTypeFinal
-          });
+        const { error: uploadError } = await supabaseClient.storage.from('midias')
+          .upload(nomeFinal, fileToUpload, { cacheControl: '3600', upsert: false, contentType: contentTypeFinal });
+        if (uploadError) throw new Error(uploadError.message || 'Falha no upload');
 
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw new Error(uploadError.message || 'Falha no upload');
-        }
-
-        // URL pública
-        const { data: urlData } = supabaseClient.storage
-          .from('midias')
-          .getPublicUrl(nomeFinal);
-
+        const { data: urlData } = supabaseClient.storage.from('midias').getPublicUrl(nomeFinal);
         const url = urlData.publicUrl;
-        if (!url) throw new Error('Não foi possível gerar URL do arquivo');
 
-        const remetente = isCliente ? 'cliente' : 'agente';
         let texto = (tipo === 'arquivo') ? file.name : (file.name || '');
-
-        // Marca texto como criptografado se admin
         if (remetente === 'agente' && texto) {
           try { texto = await criptografarTexto(texto, conversaAtual.id); } catch(e) {}
         }
 
         const { error: msgError } = await supabaseClient.from('mensagens').insert([{
-          conversa_id: conversaAtual.id,
-          texto: texto,
-          remetente: remetente,
-          tipo: tipo,
-          url_midia: url
+          conversa_id: conversaAtual.id, texto, remetente, tipo, url_midia: url, lida: false
         }]);
-
-        if (msgError) {
-          console.error('Msg error:', msgError);
-          throw new Error(msgError.message || 'Erro ao salvar mensagem');
-        }
-
-        await supabaseClient.from('conversas')
-          .update({ updated_at: new Date().toISOString() })
-          .eq('id', conversaAtual.id);
-
+        if (msgError) throw new Error(msgError.message);
+        await supabaseClient.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', conversaAtual.id);
         mostrarToast('Enviado!');
-
       } catch (err) {
         console.error(err);
-        mostrarToast('Erro: ' + (err.message || 'Falha ao enviar'), true);
-      } finally {
-        toast.remove();
+        mostrarToast('Erro: ' + (err.message || 'Falha'), true);
+      } finally { toast.remove(); }
+    }
+
+    // ========== GRAVAÇÃO ÁUDIO ==========
+    async function toggleGravacao() {
+      if (gravando) pararGravacao();
+      else await iniciarGravacao();
+    }
+    async function iniciarGravacao() {
+      if (!conversaAtual) return mostrarToast('Abra uma conversa primeiro', true);
+      try {
+        mostrarToast('Pedindo permissão do microfone...');
+        streamAudio = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        audioChunks = [];
+        const options = {};
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) options.mimeType = 'audio/webm;codecs=opus';
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) options.mimeType = 'audio/mp4';
+        mediaRecorder = new MediaRecorder(streamAudio, options);
+        mediaRecorder.ondataavailable = e => { if (e.data?.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = async () => {
+          const mime = mediaRecorder.mimeType || 'audio/webm';
+          const blob = new Blob(audioChunks, { type: mime });
+          if (streamAudio) { streamAudio.getTracks().forEach(t => t.stop()); streamAudio = null; }
+          if (blob.size < 1000) return mostrarToast('Áudio muito curto', true);
+          await enviarBlobAudio(blob, mime);
+        };
+        mediaRecorder.start(250);
+        gravando = true;
+        const btn = document.getElementById('btnAudio');
+        if (btn) { btn.classList.add('gravando'); btn.textContent = '⏹'; }
+        mostrarToast('🔴 GRAVANDO — toque de novo para enviar');
+      } catch (err) {
+        if (err.name === 'NotAllowedError') mostrarToast('Permissão de microfone negada', true);
+        else mostrarToast('Erro: ' + err.message, true);
       }
+    }
+    function pararGravacao() {
+      if (mediaRecorder && gravando) {
+        mediaRecorder.stop(); gravando = false;
+        const btn = document.getElementById('btnAudio');
+        if (btn) { btn.classList.remove('gravando'); btn.textContent = '🎤'; }
+      }
+    }
+    async function enviarBlobAudio(blob, mime) {
+      const toast = document.createElement('div');
+      toast.className = 'uploading'; toast.textContent = 'Enviando áudio...';
+      document.body.appendChild(toast);
+      try {
+        let ext = 'webm';
+        if (mime.includes('mp4')) ext = 'm4a';
+        else if (mime.includes('ogg')) ext = 'ogg';
+        let nomeArquivo = conversaAtual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
+        let blobFinal = blob; let mimeFinal = mime; let nomeFinal = nomeArquivo;
+        const remetente = isCliente ? 'cliente' : 'agente';
+        if (remetente === 'agente') {
+          blobFinal = await criptografarBlob(blob, conversaAtual.id);
+          mimeFinal = 'application/octet-stream';
+          nomeFinal = nomeArquivo + '.enc';
+        }
+        const { error: uploadError } = await supabaseClient.storage.from('midias')
+          .upload(nomeFinal, blobFinal, { cacheControl: '3600', upsert: false, contentType: mimeFinal });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabaseClient.storage.from('midias').getPublicUrl(nomeFinal);
+        let textoAudio = 'Áudio';
+        if (remetente === 'agente') {
+          try { textoAudio = await criptografarTexto('Áudio', conversaAtual.id); } catch(e) {}
+        }
+        const { error: msgError } = await supabaseClient.from('mensagens').insert([{
+          conversa_id: conversaAtual.id, texto: textoAudio, remetente, tipo: 'audio', url_midia: urlData.publicUrl, lida: false
+        }]);
+        if (msgError) throw msgError;
+        await supabaseClient.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', conversaAtual.id);
+        mostrarToast('Áudio enviado!');
+      } catch (err) {
+        mostrarToast('Erro: ' + (err.message || err), true);
+      } finally { toast.remove(); }
     }
 
     document.getElementById('messageInput').addEventListener('keypress', e => {
@@ -1064,39 +1016,27 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
       if (!conversaAtual) return;
       let base = window.location.href.split('?')[0].split('#')[0];
       const link = base + '?sala=' + conversaAtual.id + '&cliente=1';
-      prompt('Copie o link e envie para o cliente:', link);
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(link).then(() => mostrarToast('Link copiado!')).catch(() => {});
-      }
+      prompt('Copie o link do cliente:', link);
+      if (navigator.clipboard) navigator.clipboard.writeText(link).then(() => mostrarToast('Link copiado!')).catch(() => {});
     }
 
     function formatarHora(data) {
       if (!data) return '';
-      const d = new Date(data);
-      const agora = new Date();
-      if (agora - d < 86400000 && d.getDate() === agora.getDate()) {
+      const d = new Date(data); const agora = new Date();
+      if (agora - d < 86400000 && d.getDate() === agora.getDate())
         return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      }
       return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     }
-
     function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text || '';
-      return div.innerHTML;
+      const div = document.createElement('div'); div.textContent = text || ''; return div.innerHTML;
     }
-
     function scrollParaBaixo() {
-      const c = document.getElementById('messages');
-      if (c) c.scrollTop = c.scrollHeight;
+      const c = document.getElementById('messages'); if (c) c.scrollTop = c.scrollHeight;
     }
-
     function mostrarToast(texto, erro = false) {
       const t = document.createElement('div');
-      t.className = 'toast' + (erro ? ' erro' : '');
-      t.textContent = texto;
-      document.body.appendChild(t);
-      setTimeout(() => t.remove(), 3500);
+      t.className = 'toast' + (erro ? ' erro' : ''); t.textContent = texto;
+      document.body.appendChild(t); setTimeout(() => t.remove(), 3500);
     }
 
     detectarModo();
