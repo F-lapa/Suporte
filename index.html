@@ -649,6 +649,9 @@
         avEl.style.backgroundSize = 'cover';
         avEl.style.backgroundPosition = 'center';
         avEl.style.backgroundColor = 'transparent';
+        // Esconde seta de voltar no cliente
+        const backBtn = document.querySelector('.back');
+        if (backBtn) backBtn.style.display = 'none';
       } else {
         nomeEl.textContent = atual.nome;
         avEl.textContent = atual.nome[0].toUpperCase();
