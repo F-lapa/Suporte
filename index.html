@@ -5,1123 +5,927 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Atendimento Pro</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f1419;
-      --bg2: #1a2332;
-      --bg3: #243044;
-      --border: #2d3a4f;
-      --accent: #3b82f6;
-      --accent2: #22c55e;
-      --text: #f1f5f9;
+      --bg: #0b0f14;
+      --surface: #12181f;
+      --surface2: #1a222d;
+      --surface3: #232d3b;
+      --border: #2a3544;
+      --primary: #0ea5e9;
+      --primary-dim: #0284c7;
+      --green: #22c55e;
+      --text: #f8fafc;
       --text2: #94a3b8;
+      --text3: #64748b;
+      --me: #0c4a6e;
+      --other: #1e293b;
       --danger: #ef4444;
-      --msg-me: #1e40af;
-      --msg-other: #1e293b;
+      --radius: 16px;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       height: 100vh; height: 100dvh;
       overflow: hidden;
+      -webkit-font-smoothing: antialiased;
     }
     .app { display: flex; height: 100%; }
 
-    /* SIDEBAR */
+    /* ===== SIDEBAR ===== */
     .sidebar {
-      width: 360px; background: var(--bg2);
+      width: 380px; background: var(--surface);
       border-right: 1px solid var(--border);
       display: flex; flex-direction: column; flex-shrink: 0;
     }
-    .sidebar-header {
-      padding: 18px 20px; display: flex; align-items: center;
-      justify-content: space-between; border-bottom: 1px solid var(--border);
+    .sidebar-top {
+      padding: 20px 20px 12px;
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .sidebar-header h1 {
-      font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
+    .brand {
+      display: flex; align-items: center; gap: 10px;
     }
-    .sidebar-header h1 span { color: var(--accent); }
+    .brand-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), #8b5cf6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .brand h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.4px; }
     .btn-novo {
-      background: var(--accent); color: white; border: none;
-      padding: 9px 16px; border-radius: 10px; font-size: 13px;
-      font-weight: 600; cursor: pointer; transition: 0.15s;
+      background: var(--primary); color: white; border: none;
+      padding: 9px 14px; border-radius: 10px; font-size: 13px;
+      font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: all 0.15s;
     }
-    .btn-novo:hover { background: #2563eb; transform: translateY(-1px); }
-    .search-box { padding: 12px 16px; }
-    .search-box input {
-      width: 100%; background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 12px; padding: 11px 16px; color: var(--text);
-      font-size: 14px; outline: none; transition: 0.15s;
+    .btn-novo:hover { background: var(--primary-dim); }
+    .search-wrap { padding: 8px 16px 12px; }
+    .search-wrap input {
+      width: 100%; background: var(--surface2); border: 1px solid transparent;
+      border-radius: 12px; padding: 11px 14px 11px 40px; color: var(--text);
+      font-size: 14px; outline: none; font-family: inherit;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: 14px center;
+      transition: border-color 0.15s;
     }
-    .search-box input:focus { border-color: var(--accent); }
-    .search-box input::placeholder { color: var(--text2); }
-    .lista-clientes { flex: 1; overflow-y: auto; padding: 4px 8px; }
-    .cliente-item {
+    .search-wrap input:focus { border-color: var(--primary); }
+    .search-wrap input::placeholder { color: var(--text3); }
+    .lista { flex: 1; overflow-y: auto; padding: 4px 10px 16px; }
+    .lista::-webkit-scrollbar { width: 4px; }
+    .lista::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .item {
       display: flex; align-items: center; gap: 12px;
-      padding: 12px 12px; border-radius: 14px; cursor: pointer;
-      transition: 0.15s; margin-bottom: 2px;
+      padding: 12px; border-radius: 14px; cursor: pointer;
+      transition: background 0.12s; margin-bottom: 2px;
     }
-    .cliente-item:hover { background: var(--bg3); }
-    .cliente-item.ativo { background: var(--bg3); box-shadow: inset 3px 0 0 var(--accent); }
-    .avatar {
-      width: 48px; height: 48px; border-radius: 14px;
-      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    .item:hover { background: var(--surface2); }
+    .item.ativo { background: var(--surface2); }
+    .av {
+      width: 50px; height: 50px; border-radius: 50%;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
       display: flex; align-items: center; justify-content: center;
       font-size: 18px; font-weight: 700; color: white; flex-shrink: 0;
       position: relative;
     }
-    .avatar .online-dot {
-      position: absolute; bottom: -2px; right: -2px;
-      width: 14px; height: 14px; background: var(--accent2);
-      border: 2.5px solid var(--bg2); border-radius: 50%;
+    .av .dot {
+      position: absolute; bottom: 1px; right: 1px;
+      width: 13px; height: 13px; background: var(--green);
+      border: 2.5px solid var(--surface); border-radius: 50%;
     }
-    .cliente-info { flex: 1; min-width: 0; }
-    .cliente-nome {
-      font-size: 15px; font-weight: 600; margin-bottom: 3px;
+    .item-info { flex: 1; min-width: 0; }
+    .item-nome {
+      font-size: 15px; font-weight: 600; margin-bottom: 2px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .cliente-preview {
+    .item-sub {
       font-size: 13px; color: var(--text2);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .cliente-meta { text-align: right; flex-shrink: 0; }
-    .cliente-hora { font-size: 11px; color: var(--text2); }
-    .vazio-lista {
-      padding: 48px 24px; text-align: center; color: var(--text2);
+    .item-hora { font-size: 11px; color: var(--text3); flex-shrink: 0; }
+    .vazio {
+      padding: 60px 24px; text-align: center; color: var(--text2);
       font-size: 14px; line-height: 1.6;
     }
 
-    /* CHAT */
-    .chat-area {
+    /* ===== CHAT ===== */
+    .chat {
       flex: 1; display: flex; flex-direction: column;
       background: var(--bg); min-height: 0; overflow: hidden;
+      position: relative;
     }
-    .chat-vazio {
+    .chat-empty {
       flex: 1; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       color: var(--text2); text-align: center; padding: 40px;
     }
-    .chat-vazio .icone {
-      width: 80px; height: 80px; border-radius: 24px;
-      background: var(--bg2); display: flex; align-items: center;
-      justify-content: center; font-size: 36px; margin-bottom: 20px;
+    .chat-empty .big-icon {
+      width: 88px; height: 88px; border-radius: 28px;
+      background: var(--surface); display: flex; align-items: center;
+      justify-content: center; font-size: 40px; margin-bottom: 24px;
+      border: 1px solid var(--border);
     }
-    .chat-vazio h2 { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
-    .chat-header {
-      background: var(--bg2); padding: 12px 20px;
+    .chat-empty h2 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .chat-empty p { font-size: 14px; line-height: 1.6; max-width: 280px; }
+
+    .chat-head {
+      background: var(--surface); padding: 12px 16px;
       display: flex; align-items: center; gap: 12px;
       border-bottom: 1px solid var(--border); flex-shrink: 0;
+      min-height: 64px;
     }
-    .chat-header .avatar { width: 42px; height: 42px; font-size: 15px; border-radius: 12px; }
-    .chat-header-info h2 { font-size: 15px; font-weight: 600; }
-    .chat-header-info .status-line {
-      font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 5px;
+    .chat-head .av { width: 42px; height: 42px; font-size: 15px; }
+    .chat-head-info { flex: 1; min-width: 0; }
+    .chat-head-info h2 {
+      font-size: 15px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .chat-header-info .status-line.online { color: var(--accent2); }
-    .chat-header-info .status-line.online::before {
-      content: ''; width: 7px; height: 7px; background: var(--accent2);
+    .status {
+      font-size: 12px; color: var(--text3);
+      display: flex; align-items: center; gap: 5px; margin-top: 1px;
+    }
+    .status.on { color: var(--green); }
+    .status.on::before {
+      content: ''; width: 7px; height: 7px; background: var(--green);
       border-radius: 50%; display: inline-block;
     }
-    .header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-    .btn-header {
-      background: var(--bg3); border: 1px solid var(--border);
-      color: var(--text); padding: 8px 12px; border-radius: 10px;
-      font-size: 12px; font-weight: 500; cursor: pointer; transition: 0.15s;
+    .head-btns { display: flex; gap: 6px; flex-shrink: 0; }
+    .hbtn {
+      background: var(--surface2); border: none; color: var(--text2);
+      padding: 8px 12px; border-radius: 10px; font-size: 12px;
+      font-weight: 500; cursor: pointer; font-family: inherit;
+      transition: all 0.12s; white-space: nowrap;
     }
-    .btn-header:hover { background: var(--border); }
-    .btn-header.ativo { background: var(--accent); border-color: var(--accent); color: white; }
+    .hbtn:hover { background: var(--surface3); color: var(--text); }
+    .hbtn.on { background: var(--primary); color: white; }
 
-    #messages {
-      flex: 1; overflow-y: auto; padding: 20px;
-      display: flex; flex-direction: column; gap: 6px; min-height: 0;
-      background: 
-        radial-gradient(ellipse at top left, rgba(59,130,246,0.04) 0%, transparent 50%),
-        var(--bg);
+    #msgs {
+      flex: 1; overflow-y: auto; padding: 16px 16px 8px;
+      display: flex; flex-direction: column; gap: 4px; min-height: 0;
     }
-    .msg {
-      max-width: 70%; padding: 10px 14px; border-radius: 16px;
-      font-size: 14.5px; line-height: 1.45; word-wrap: break-word;
-      animation: fadeIn 0.2s ease; position: relative;
+    #msgs::-webkit-scrollbar { width: 4px; }
+    #msgs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .bubble {
+      max-width: 75%; padding: 9px 12px 6px;
+      border-radius: 18px; font-size: 14.5px; line-height: 1.45;
+      word-wrap: break-word; animation: in 0.18s ease;
+      position: relative;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes in {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to { opacity: 1; transform: none; }
     }
-    .msg.eu {
-      background: var(--msg-me); align-self: flex-end;
-      border-bottom-right-radius: 4px;
+    .bubble.me {
+      background: var(--me); align-self: flex-end;
+      border-bottom-right-radius: 6px;
     }
-    .msg.outro {
-      background: var(--msg-other); align-self: flex-start;
-      border-bottom-left-radius: 4px; border: 1px solid var(--border);
+    .bubble.them {
+      background: var(--other); align-self: flex-start;
+      border-bottom-left-radius: 6px;
+      border: 1px solid var(--border);
     }
-    .msg .meta {
+    .bubble .foot {
       display: flex; align-items: center; justify-content: flex-end;
-      gap: 4px; margin-top: 4px;
+      gap: 3px; margin-top: 3px; min-height: 16px;
     }
-    .msg.outro .meta { justify-content: flex-start; }
-    .msg .hora { font-size: 11px; color: rgba(241,245,249,0.45); }
-    .msg .checks { font-size: 13px; color: rgba(241,245,249,0.4); letter-spacing: -2px; }
-    .msg .checks.lida { color: #60a5fa; }
-    .msg img {
-      max-width: 100%; max-height: 280px; border-radius: 12px;
+    .bubble.them .foot { justify-content: flex-start; }
+    .bubble .time { font-size: 11px; color: rgba(248,250,252,0.4); }
+    .bubble .ticks {
+      font-size: 14px; color: rgba(248,250,252,0.35);
+      letter-spacing: -3px; margin-left: 2px;
+    }
+    .bubble .ticks.read { color: #38bdf8; }
+    .bubble img {
+      max-width: 100%; max-height: 260px; border-radius: 12px;
       display: block; margin-bottom: 4px; cursor: pointer;
     }
-    .msg video {
-      max-width: 100%; max-height: 280px; border-radius: 12px;
+    .bubble video {
+      max-width: 100%; max-height: 260px; border-radius: 12px;
       display: block; margin-bottom: 4px; background: #000;
     }
-    .msg audio { width: 100%; min-width: 200px; margin: 4px 0; }
-    .msg .arquivo {
+    .bubble audio { width: 100%; min-width: 200px; margin: 2px 0 4px; }
+    .bubble .file {
       display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px; background: rgba(0,0,0,0.2);
-      border-radius: 10px; margin-bottom: 4px; text-decoration: none; color: var(--text);
+      padding: 10px; background: rgba(0,0,0,0.2);
+      border-radius: 12px; margin-bottom: 4px;
+      text-decoration: none; color: var(--text);
     }
 
-    /* PAINEL DE NOTAS */
-    .notas-panel {
-      width: 300px; background: var(--bg2); border-left: 1px solid var(--border);
+    /* Notas */
+    .notas {
+      width: 320px; background: var(--surface);
+      border-left: 1px solid var(--border);
       display: none; flex-direction: column; flex-shrink: 0;
     }
-    .notas-panel.aberto { display: flex; }
-    .notas-header {
+    .notas.open { display: flex; }
+    .notas-top {
       padding: 16px 18px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
     }
-    .notas-header h3 { font-size: 14px; font-weight: 600; }
-    .notas-header button {
+    .notas-top h3 { font-size: 14px; font-weight: 600; }
+    .notas-top button {
       background: none; border: none; color: var(--text2);
       font-size: 18px; cursor: pointer;
     }
-    .notas-body { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .notas-body {
+      flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    }
     .notas-body label { font-size: 12px; color: var(--text2); font-weight: 500; }
     .notas-body textarea {
-      flex: 1; background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px; color: var(--text);
-      font-size: 14px; line-height: 1.5; resize: none; outline: none;
-      font-family: inherit; min-height: 200px;
+      flex: 1; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px; color: var(--text);
+      font-size: 14px; line-height: 1.55; resize: none; outline: none;
+      font-family: inherit; min-height: 180px;
     }
-    .notas-body textarea:focus { border-color: var(--accent); }
-    .btn-salvar-nota {
-      background: var(--accent); color: white; border: none;
-      padding: 12px; border-radius: 12px; font-size: 14px;
-      font-weight: 600; cursor: pointer;
+    .notas-body textarea:focus { border-color: var(--primary); }
+    .btn-save {
+      background: var(--primary); color: white; border: none;
+      padding: 13px; border-radius: 12px; font-size: 14px;
+      font-weight: 600; cursor: pointer; font-family: inherit;
     }
-    .btn-salvar-nota:hover { background: #2563eb; }
+    .btn-save:hover { background: var(--primary-dim); }
 
-    /* INPUT */
-    .input-area {
-      background: var(--bg2); padding: 12px 16px;
+    /* Input */
+    .composer {
+      background: var(--surface); padding: 10px 12px;
       display: flex; gap: 6px; align-items: center;
       border-top: 1px solid var(--border); flex-shrink: 0;
     }
-    .btn-midia {
-      background: var(--bg3); border: none; color: var(--text2);
+    .mbtn {
+      background: transparent; border: none; color: var(--text2);
       width: 40px; height: 40px; border-radius: 12px;
       font-size: 18px; cursor: pointer; display: flex;
-      align-items: center; justify-content: center; transition: 0.15s; flex-shrink: 0;
+      align-items: center; justify-content: center;
+      transition: all 0.12s; flex-shrink: 0;
     }
-    .btn-midia:hover { color: var(--accent); background: var(--border); }
-    .btn-midia.gravando {
+    .mbtn:hover { color: var(--primary); background: var(--surface2); }
+    .mbtn.rec {
       color: white; background: var(--danger);
       animation: pulse 1s infinite;
     }
     @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+      0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
     }
-    #messageInput {
-      flex: 1; background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 14px; padding: 12px 16px; color: var(--text);
-      font-size: 15px; outline: none;
+    #inp {
+      flex: 1; background: var(--surface2); border: 1px solid transparent;
+      border-radius: 22px; padding: 12px 18px; color: var(--text);
+      font-size: 15px; outline: none; font-family: inherit;
+      transition: border-color 0.15s;
     }
-    #messageInput:focus { border-color: var(--accent); }
-    #messageInput::placeholder { color: var(--text2); }
-    #sendBtn {
-      background: var(--accent); border: none; width: 44px; height: 44px;
-      border-radius: 14px; color: white; font-size: 18px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      transition: 0.15s;
+    #inp:focus { border-color: var(--primary); }
+    #inp::placeholder { color: var(--text3); }
+    #send {
+      background: var(--primary); border: none; width: 44px; height: 44px;
+      border-radius: 50%; color: white; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.12s;
     }
-    #sendBtn:hover { background: #2563eb; }
-    #sendBtn:disabled { background: var(--bg3); color: var(--text2); }
+    #send:hover { background: var(--primary-dim); transform: scale(1.05); }
+    #send:disabled { background: var(--surface2); color: var(--text3); transform: none; }
 
-    /* MODAL */
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.65);
-      display: none; align-items: center; justify-content: center; z-index: 100;
-      backdrop-filter: blur(4px);
+    /* Modal */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: none; align-items: center; justify-content: center;
+      z-index: 100; backdrop-filter: blur(6px);
     }
-    .modal-overlay.ativo { display: flex; }
+    .overlay.on { display: flex; }
     .modal {
-      background: var(--bg2); border-radius: 20px; padding: 28px;
-      width: 90%; max-width: 400px; border: 1px solid var(--border);
+      background: var(--surface); border-radius: 20px; padding: 28px;
+      width: 90%; max-width: 380px; border: 1px solid var(--border);
     }
-    .modal h3 { font-size: 18px; margin-bottom: 18px; font-weight: 600; }
+    .modal h3 { font-size: 18px; margin-bottom: 16px; font-weight: 700; }
     .modal input {
-      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
       border-radius: 12px; padding: 13px 16px; color: var(--text);
-      font-size: 15px; outline: none; margin-bottom: 18px;
+      font-size: 15px; outline: none; margin-bottom: 16px; font-family: inherit;
     }
-    .modal input:focus { border-color: var(--accent); }
-    .modal-botoes { display: flex; gap: 10px; justify-content: flex-end; }
-    .modal-botoes button {
-      padding: 11px 20px; border-radius: 12px; font-size: 14px;
-      font-weight: 600; cursor: pointer; border: none;
+    .modal input:focus { border-color: var(--primary); }
+    .modal-row { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-row button {
+      padding: 11px 18px; border-radius: 12px; font-size: 14px;
+      font-weight: 600; cursor: pointer; border: none; font-family: inherit;
     }
-    .btn-cancelar { background: var(--bg3); color: var(--text2); }
-    .btn-criar { background: var(--accent); color: white; }
+    .btn-x { background: var(--surface2); color: var(--text2); }
+    .btn-ok { background: var(--primary); color: white; }
 
     .toast {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: var(--accent); color: white; padding: 12px 22px;
-      border-radius: 12px; font-size: 14px; font-weight: 500; z-index: 200;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%);
+      background: var(--primary); color: white; padding: 12px 20px;
+      border-radius: 12px; font-size: 13px; font-weight: 500; z-index: 200;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4); max-width: 90%;
     }
-    .toast.erro { background: var(--danger); }
+    .toast.err { background: var(--danger); }
     .uploading {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: var(--bg2); color: var(--text); padding: 12px 22px;
-      border-radius: 12px; font-size: 14px; z-index: 200; border: 1px solid var(--border);
+      position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%);
+      background: var(--surface); color: var(--text); padding: 12px 20px;
+      border-radius: 12px; font-size: 13px; z-index: 200; border: 1px solid var(--border);
     }
-    .lightbox {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+    .lb {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.94);
       display: none; align-items: center; justify-content: center; z-index: 300; padding: 20px;
     }
-    .lightbox.ativo { display: flex; }
-    .lightbox img { max-width: 100%; max-height: 90vh; border-radius: 12px; }
-    .lightbox .fechar {
-      position: absolute; top: 16px; right: 16px; background: var(--bg3);
+    .lb.on { display: flex; }
+    .lb img { max-width: 100%; max-height: 90vh; border-radius: 12px; }
+    .lb .x {
+      position: absolute; top: 16px; right: 16px; background: var(--surface2);
       color: white; border: none; width: 44px; height: 44px;
       border-radius: 12px; font-size: 20px; cursor: pointer;
     }
 
-    /* Proteção cliente */
-    body.modo-cliente {
+    body.cli {
       -webkit-user-select: none !important; user-select: none !important;
       -webkit-touch-callout: none !important;
     }
-    body.modo-cliente img, body.modo-cliente video {
-      pointer-events: none; -webkit-user-drag: none;
-    }
-    body.modo-cliente #messageInput, body.modo-cliente input {
+    body.cli img, body.cli video { pointer-events: none; -webkit-user-drag: none; }
+    body.cli #inp, body.cli input {
       -webkit-user-select: text !important; user-select: text !important;
       pointer-events: auto !important;
     }
 
     @media (max-width: 800px) {
       .sidebar { width: 100%; }
-      .chat-area { display: none; }
-      .notas-panel { display: none !important; position: fixed; inset: 0; width: 100%; z-index: 50; }
-      .notas-panel.aberto { display: flex !important; }
-      .app.chat-aberto .sidebar { display: none; }
-      .app.chat-aberto .chat-area { display: flex; }
+      .chat { display: none; }
+      .notas { display: none !important; position: fixed; inset: 0; width: 100%; z-index: 50; }
+      .notas.open { display: flex !important; }
+      .app.open .sidebar { display: none; }
+      .app.open .chat { display: flex; }
     }
-    .btn-voltar {
+    .back {
       display: none; background: none; border: none;
-      color: var(--text); font-size: 22px; cursor: pointer; margin-right: 4px;
+      color: var(--text); font-size: 22px; cursor: pointer; padding: 4px;
     }
-    @media (max-width: 800px) { .btn-voltar { display: block; } }
+    @media (max-width: 800px) { .back { display: block; } }
     input[type="file"] { display: none; }
   </style>
 </head>
 <body>
   <div class="app" id="app">
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <h1>Atendimento <span>Pro</span></h1>
-        <button class="btn-novo" onclick="abrirModalNovo()">+ Novo</button>
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="brand">
+          <div class="brand-icon">💬</div>
+          <h1>Atendimento</h1>
+        </div>
+        <button class="btn-novo" id="btnNovo" onclick="abrirModal()">+ Novo</button>
       </div>
-      <div class="search-box">
-        <input type="text" id="busca" placeholder="Buscar cliente..." oninput="filtrarClientes()">
+      <div class="search-wrap">
+        <input type="text" id="busca" placeholder="Buscar..." oninput="filtrar()">
       </div>
-      <div class="lista-clientes" id="listaClientes">
-        <div class="vazio-lista">Carregando...</div>
-      </div>
+      <div class="lista" id="lista"><div class="vazio">Carregando...</div></div>
     </div>
 
-    <div class="chat-area" id="chatArea">
-      <div class="chat-vazio" id="chatVazio">
-        <div class="icone">💬</div>
+    <div class="chat" id="chat">
+      <div class="chat-empty" id="empty">
+        <div class="big-icon">💬</div>
         <h2>Atendimento Pro</h2>
-        <p>Selecione um cliente ou crie um novo<br>para começar o atendimento.</p>
+        <p>Selecione uma conversa ou crie um novo cliente para começar.</p>
       </div>
 
-      <div id="chatAtivo" style="display:none; flex-direction:column; height:100%; flex:1; min-height:0;">
-        <div class="chat-header">
-          <button class="btn-voltar" onclick="fecharChatMobile()">←</button>
-          <div class="avatar" id="chatAvatar">?</div>
-          <div class="chat-header-info">
-            <h2 id="chatNome">Cliente</h2>
-            <div class="status-line" id="chatStatus">Offline</div>
+      <div id="active" style="display:none;flex-direction:column;height:100%;flex:1;min-height:0;">
+        <div class="chat-head">
+          <button class="back" onclick="voltar()">←</button>
+          <div class="av" id="av">?</div>
+          <div class="chat-head-info">
+            <h2 id="nome">Cliente</h2>
+            <div class="status" id="status">Offline</div>
           </div>
-          <div class="header-actions">
-            <button class="btn-header" id="btnNotas" onclick="toggleNotas()" title="Anotações">📝 Notas</button>
-            <button class="btn-header" onclick="copiarLinkCliente()">🔗 Link</button>
+          <div class="head-btns">
+            <button class="hbtn" id="btnNotas" onclick="toggleNotas()">📝 Notas</button>
+            <button class="hbtn" id="btnLink" onclick="copiarLink()">🔗 Link</button>
           </div>
         </div>
-        <div id="messages"></div>
-        <div class="input-area">
-          <button class="btn-midia" onclick="escolherArquivo('imagem')" title="Foto">📷</button>
-          <button class="btn-midia" onclick="escolherArquivo('video')" title="Vídeo">🎬</button>
-          <button class="btn-midia" onclick="escolherArquivo('arquivo')" title="Arquivo">📎</button>
-          <button class="btn-midia" id="btnAudio" onclick="toggleGravacao()" title="Gravar áudio">🎤</button>
-          <button class="btn-midia" onclick="escolherArquivo('audio')" title="Áudio arquivo">🎵</button>
-          <input type="file" id="fileInput" onchange="enviarArquivo(event)">
-          <input type="text" id="messageInput" placeholder="Digite uma mensagem..." autocomplete="off">
-          <button id="sendBtn" onclick="enviarMensagem()">➤</button>
+        <div id="msgs"></div>
+        <div class="composer">
+          <button class="mbtn" onclick="pick('imagem')" title="Foto">📷</button>
+          <button class="mbtn" onclick="pick('video')" title="Vídeo">🎬</button>
+          <button class="mbtn" onclick="pick('arquivo')" title="Arquivo">📎</button>
+          <button class="mbtn" id="btnMic" onclick="toggleRec()" title="Gravar">🎤</button>
+          <button class="mbtn" onclick="pick('audio')" title="Áudio">🎵</button>
+          <input type="file" id="fileInput" onchange="sendFile(event)">
+          <input type="text" id="inp" placeholder="Mensagem..." autocomplete="off">
+          <button id="send" onclick="sendMsg()">➤</button>
         </div>
       </div>
     </div>
 
-    <!-- PAINEL DE ANOTAÇÕES (só admin) -->
-    <div class="notas-panel" id="notasPanel">
-      <div class="notas-header">
-        <h3>📝 Anotações</h3>
+    <div class="notas" id="notas">
+      <div class="notas-top">
+        <h3>📝 Anotações privadas</h3>
         <button onclick="toggleNotas()">✕</button>
       </div>
       <div class="notas-body">
-        <label>Observações sobre este cliente (só você vê)</label>
-        <textarea id="notasTexto" placeholder="Ex: Cliente prefere contato de manhã. Já comprou 2x. Cuidado com..."></textarea>
-        <button class="btn-salvar-nota" onclick="salvarNotas()">Salvar anotações</button>
+        <label>Só você vê estas anotações</label>
+        <textarea id="notasTxt" placeholder="Observações sobre o cliente..."></textarea>
+        <button class="btn-save" onclick="saveNotas()">Salvar</button>
       </div>
     </div>
   </div>
 
-  <div class="modal-overlay" id="modalNovo">
+  <div class="overlay" id="modal">
     <div class="modal">
-      <h3>Novo Cliente</h3>
-      <input type="text" id="inputNome" placeholder="Nome do cliente" maxlength="50">
-      <div class="modal-botoes">
-        <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
-        <button class="btn-criar" onclick="criarCliente()">Criar</button>
+      <h3>Novo cliente</h3>
+      <input type="text" id="nomeInput" placeholder="Nome do cliente" maxlength="50">
+      <div class="modal-row">
+        <button class="btn-x" onclick="fecharModal()">Cancelar</button>
+        <button class="btn-ok" onclick="criar()">Criar</button>
       </div>
     </div>
   </div>
 
-  <div class="lightbox" id="lightbox" onclick="fecharLightbox()">
-    <button class="fechar" onclick="fecharLightbox()">✕</button>
-    <img id="lightboxImg" src="" alt="">
+  <div class="lb" id="lb" onclick="fecharLb()">
+    <button class="x" onclick="fecharLb()">✕</button>
+    <img id="lbImg" src="" alt="">
   </div>
 
   <script>
     const SUPABASE_URL = 'https://hthcmhbcgmwprhgubiuy.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_Z_4elpCD5ygI-SV_2ljJug_gHW0ipa2';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SECRET = 'AtendimentoSecreto2026!';
 
-    const CHAVE_SECRETA = 'AtendimentoSecreto2026!';
+    let conversas = [], atual = null, channel = null, isCli = false;
+    let tipoFile = 'arquivo', recorder = null, chunks = [], recording = false, stream = null;
+    let hb = null, st = null;
 
-    let conversas = [];
-    let conversaAtual = null;
-    let channelMensagens = null;
-    let isCliente = false;
-    let tipoArquivoAtual = 'arquivo';
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let gravando = false;
-    let streamAudio = null;
-    let heartbeatInterval = null;
-    let statusInterval = null;
-
-    // ========== CRIPTOGRAFIA ==========
-    async function derivarChave(conversaId) {
-      const enc = new TextEncoder();
-      const material = await crypto.subtle.importKey('raw', enc.encode(CHAVE_SECRETA + ':' + conversaId), 'PBKDF2', false, ['deriveKey']);
-      return crypto.subtle.deriveKey(
-        { name: 'PBKDF2', salt: enc.encode('sal-atendimento-v1'), iterations: 100000, hash: 'SHA-256' },
-        material, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
-      );
+    // Crypto
+    async function key(id) {
+      const e = new TextEncoder();
+      const m = await crypto.subtle.importKey('raw', e.encode(SECRET + ':' + id), 'PBKDF2', false, ['deriveKey']);
+      return crypto.subtle.deriveKey({ name:'PBKDF2', salt:e.encode('sal-atendimento-v1'), iterations:100000, hash:'SHA-256' }, m, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
     }
-    async function criptografarTexto(texto, conversaId) {
-      const key = await derivarChave(conversaId);
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(texto));
-      const combined = new Uint8Array(iv.length + cipher.byteLength);
-      combined.set(iv, 0); combined.set(new Uint8Array(cipher), iv.length);
-      let binary = ''; combined.forEach(b => binary += String.fromCharCode(b));
-      return 'enc:' + btoa(binary);
+    async function enc(t, id) {
+      const k = await key(id), iv = crypto.getRandomValues(new Uint8Array(12));
+      const c = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, k, new TextEncoder().encode(t));
+      const all = new Uint8Array(12 + c.byteLength); all.set(iv); all.set(new Uint8Array(c), 12);
+      let b = ''; all.forEach(x => b += String.fromCharCode(x)); return 'enc:' + btoa(b);
     }
-    async function descriptografarTexto(texto, conversaId) {
-      if (!texto || !texto.startsWith('enc:')) return texto;
+    async function dec(t, id) {
+      if (!t || !t.startsWith('enc:')) return t;
       try {
-        const key = await derivarChave(conversaId);
-        const raw = atob(texto.slice(4));
-        const bytes = new Uint8Array(raw.length);
-        for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes.slice(0,12) }, key, bytes.slice(12));
-        return new TextDecoder().decode(plain);
-      } catch(e) { return '[criptografado]'; }
+        const k = await key(id), raw = atob(t.slice(4));
+        const bytes = Uint8Array.from(raw, c => c.charCodeAt(0));
+        const p = await crypto.subtle.decrypt({ name:'AES-GCM', iv:bytes.slice(0,12) }, k, bytes.slice(12));
+        return new TextDecoder().decode(p);
+      } catch { return '[criptografado]'; }
     }
-    async function criptografarBlob(blob, conversaId) {
-      const key = await derivarChave(conversaId);
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, await blob.arrayBuffer());
-      const combined = new Uint8Array(iv.length + cipher.byteLength);
-      combined.set(iv, 0); combined.set(new Uint8Array(cipher), iv.length);
-      return new Blob([combined], { type: 'application/octet-stream' });
+    async function encBlob(blob, id) {
+      const k = await key(id), iv = crypto.getRandomValues(new Uint8Array(12));
+      const c = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, k, await blob.arrayBuffer());
+      const all = new Uint8Array(12 + c.byteLength); all.set(iv); all.set(new Uint8Array(c), 12);
+      return new Blob([all], { type: 'application/octet-stream' });
     }
-    async function descriptografarBlob(encryptedBlob, conversaId, mimeType) {
+    async function decBlob(blob, id, mime) {
       try {
-        const key = await derivarChave(conversaId);
-        const bytes = new Uint8Array(await encryptedBlob.arrayBuffer());
-        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes.slice(0,12) }, key, bytes.slice(12));
-        return new Blob([plain], { type: mimeType || 'application/octet-stream' });
-      } catch(e) { return null; }
+        const k = await key(id), bytes = new Uint8Array(await blob.arrayBuffer());
+        const p = await crypto.subtle.decrypt({ name:'AES-GCM', iv:bytes.slice(0,12) }, k, bytes.slice(12));
+        return new Blob([p], { type: mime || 'application/octet-stream' });
+      } catch { return null; }
     }
 
-    // ========== PROTEÇÃO CLIENTE ==========
-    function ativarProtecaoCliente() {
+    function protect() {
       document.addEventListener('contextmenu', e => e.preventDefault());
       document.addEventListener('keydown', e => {
-        if (e.key === 'PrintScreen' || (e.ctrlKey && ['p','P','s','S','c','C','a','A','u','U'].includes(e.key)) || e.key === 'F12') {
-          e.preventDefault(); mostrarToast('Ação bloqueada', true);
+        if (e.key === 'PrintScreen' || (e.ctrlKey && 'psScCaAuU'.includes(e.key)) || e.key === 'F12') {
+          e.preventDefault(); toast('Bloqueado', true);
         }
       });
       document.addEventListener('dragstart', e => e.preventDefault());
       document.addEventListener('visibilitychange', () => {
-        const msgs = document.getElementById('messages');
-        if (msgs) msgs.style.filter = document.hidden ? 'blur(20px)' : 'none';
+        const m = document.getElementById('msgs');
+        if (m) m.style.filter = document.hidden ? 'blur(18px)' : 'none';
       });
     }
 
-    // ========== ONLINE / HEARTBEAT ==========
-    function iniciarHeartbeat() {
-      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    // Heartbeat: cada lado atualiza o próprio last_seen
+    function startHB() {
+      if (hb) clearInterval(hb);
       const ping = async () => {
-        if (!conversaAtual || !isCliente) return;
-        await supabaseClient.from('conversas')
-          .update({ last_seen_cliente: new Date().toISOString() })
-          .eq('id', conversaAtual.id);
+        if (!atual) return;
+        const field = isCli ? 'last_seen_cliente' : 'last_seen_agente';
+        await sb.from('conversas').update({ [field]: new Date().toISOString() }).eq('id', atual.id);
       };
       ping();
-      heartbeatInterval = setInterval(ping, 20000);
+      hb = setInterval(ping, 20000);
     }
 
-    function iniciarMonitorStatus() {
-      if (statusInterval) clearInterval(statusInterval);
+    function startStatus() {
+      if (st) clearInterval(st);
       const check = async () => {
-        if (!conversaAtual || isCliente) return;
-        const { data } = await supabaseClient.from('conversas')
-          .select('last_seen_cliente').eq('id', conversaAtual.id).single();
-        atualizarStatusUI(data?.last_seen_cliente);
+        if (!atual) return;
+        const { data } = await sb.from('conversas').select('last_seen_cliente, last_seen_agente').eq('id', atual.id).single();
+        if (!data) return;
+        // Cliente vê status do agente; Agente vê status do cliente
+        const seen = isCli ? data.last_seen_agente : data.last_seen_cliente;
+        setStatus(seen);
       };
       check();
-      statusInterval = setInterval(check, 15000);
+      st = setInterval(check, 12000);
     }
 
-    function atualizarStatusUI(lastSeen) {
-      const el = document.getElementById('chatStatus');
+    function setStatus(seen) {
+      const el = document.getElementById('status');
       if (!el) return;
-      if (!lastSeen) {
-        el.textContent = 'Offline';
-        el.className = 'status-line';
-        return;
-      }
-      const diff = Date.now() - new Date(lastSeen).getTime();
-      if (diff < 45000) {
-        el.textContent = 'Online';
-        el.className = 'status-line online';
-      } else if (diff < 300000) {
-        el.textContent = 'Visto recentemente';
-        el.className = 'status-line';
+      if (!seen) { el.textContent = 'Offline'; el.className = 'status'; return; }
+      const d = Date.now() - new Date(seen).getTime();
+      if (d < 45000) { el.textContent = 'Online'; el.className = 'status on'; }
+      else if (d < 300000) { el.textContent = 'Visto recentemente'; el.className = 'status'; }
+      else { el.textContent = 'Offline'; el.className = 'status'; }
+    }
+
+    function init() {
+      const p = new URLSearchParams(location.search);
+      const sala = p.get('sala');
+      isCli = p.get('cliente') === '1';
+      if (sala && isCli) {
+        document.getElementById('sidebar').style.display = 'none';
+        document.getElementById('btnNovo').style.display = 'none';
+        document.getElementById('btnNotas').style.display = 'none';
+        document.getElementById('btnLink').style.display = 'none';
+        document.body.classList.add('cli');
+        protect();
+        openById(sala);
       } else {
-        el.textContent = 'Offline';
-        el.className = 'status-line';
+        loadList();
       }
     }
 
-    // ========== INIT ==========
-    function detectarModo() {
-      const params = new URLSearchParams(window.location.search);
-      const sala = params.get('sala');
-      isCliente = params.get('cliente') === '1';
-      if (sala && isCliente) {
-        document.querySelector('.sidebar').style.display = 'none';
-        document.body.classList.add('modo-cliente');
-        const btnNotas = document.getElementById('btnNotas');
-        if (btnNotas) btnNotas.style.display = 'none';
-        ativarProtecaoCliente();
-        abrirConversaPorId(sala);
-      } else {
-        carregarConversas();
-      }
-    }
-
-    async function carregarConversas() {
-      const { data, error } = await supabaseClient.from('conversas').select('*').order('updated_at', { ascending: false });
-      if (error) {
-        document.getElementById('listaClientes').innerHTML = '<div class="vazio-lista">Erro ao carregar</div>';
-        return;
-      }
+    async function loadList() {
+      const { data, error } = await sb.from('conversas').select('*').order('updated_at', { ascending: false });
+      if (error) { document.getElementById('lista').innerHTML = '<div class="vazio">Erro ao carregar</div>'; return; }
       conversas = data || [];
-      renderizarLista();
+      render();
     }
 
-    function renderizarLista(filtro = '') {
-      const container = document.getElementById('listaClientes');
-      let lista = filtro ? conversas.filter(c => c.nome.toLowerCase().includes(filtro.toLowerCase())) : conversas;
-      if (lista.length === 0) {
-        container.innerHTML = '<div class="vazio-lista">Nenhum cliente ainda.<br>Clique em "+ Novo" para começar.</div>';
-        return;
-      }
-      container.innerHTML = lista.map(c => {
-        const ativo = conversaAtual && conversaAtual.id === c.id ? 'ativo' : '';
-        const online = c.last_seen_cliente && (Date.now() - new Date(c.last_seen_cliente).getTime() < 45000);
-        return `<div class="cliente-item ${ativo}" onclick="abrirConversa('${c.id}')">
-          <div class="avatar">${c.nome.charAt(0).toUpperCase()}${online ? '<span class="online-dot"></span>' : ''}</div>
-          <div class="cliente-info">
-            <div class="cliente-nome">${escapeHtml(c.nome)}</div>
-            <div class="cliente-preview">${c.notas ? '📝 Tem anotações' : 'Clique para abrir'}</div>
+    function render(f = '') {
+      const box = document.getElementById('lista');
+      let list = f ? conversas.filter(c => c.nome.toLowerCase().includes(f.toLowerCase())) : conversas;
+      if (!list.length) { box.innerHTML = '<div class="vazio">Nenhum cliente.<br>Clique em + Novo</div>'; return; }
+      box.innerHTML = list.map(c => {
+        const on = c.last_seen_cliente && (Date.now() - new Date(c.last_seen_cliente).getTime() < 45000);
+        const at = atual && atual.id === c.id ? 'ativo' : '';
+        return `<div class="item ${at}" onclick="openChat('${c.id}')">
+          <div class="av">${c.nome[0].toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
+          <div class="item-info">
+            <div class="item-nome">${esc(c.nome)}</div>
+            <div class="item-sub">${c.notas ? '📝 Tem anotações' : 'Toque para abrir'}</div>
           </div>
-          <div class="cliente-meta"><div class="cliente-hora">${formatarHora(c.updated_at)}</div></div>
+          <div class="item-hora">${fmt(c.updated_at)}</div>
         </div>`;
       }).join('');
     }
+    function filtrar() { render(document.getElementById('busca').value); }
 
-    function filtrarClientes() { renderizarLista(document.getElementById('busca').value); }
-
-    function abrirModalNovo() {
-      document.getElementById('modalNovo').classList.add('ativo');
-      document.getElementById('inputNome').value = '';
-      setTimeout(() => document.getElementById('inputNome').focus(), 100);
+    function abrirModal() {
+      document.getElementById('modal').classList.add('on');
+      document.getElementById('nomeInput').value = '';
+      setTimeout(() => document.getElementById('nomeInput').focus(), 80);
     }
-    function fecharModal() { document.getElementById('modalNovo').classList.remove('ativo'); }
+    function fecharModal() { document.getElementById('modal').classList.remove('on'); }
 
-    async function criarCliente() {
-      const nome = document.getElementById('inputNome').value.trim();
-      if (!nome) return alert('Digite o nome do cliente');
-      const id = Math.random().toString(36).substring(2, 10) + Date.now().toString(36).slice(-4);
-      const { error } = await supabaseClient.from('conversas').insert([{ id, nome, notas: '' }]);
-      if (error) return alert('Erro: ' + error.message);
+    async function criar() {
+      const nome = document.getElementById('nomeInput').value.trim();
+      if (!nome) return alert('Digite o nome');
+      const id = Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+      const { error } = await sb.from('conversas').insert([{ id, nome, notas: '' }]);
+      if (error) return alert(error.message);
       fecharModal();
-      await carregarConversas();
-      abrirConversa(id);
-      mostrarToast('Cliente criado!');
+      await loadList();
+      openChat(id);
+      toast('Cliente criado!');
     }
-    document.getElementById('inputNome').addEventListener('keypress', e => { if (e.key === 'Enter') criarCliente(); });
+    document.getElementById('nomeInput').addEventListener('keypress', e => { if (e.key === 'Enter') criar(); });
 
-    async function abrirConversa(id) {
-      let conversa = conversas.find(c => c.id === id);
-      if (!conversa) {
-        const { data } = await supabaseClient.from('conversas').select('*').eq('id', id).single();
-        if (!data) return alert('Conversa não encontrada');
-        conversaAtual = data;
-      } else {
-        conversaAtual = conversa;
-      }
-      mostrarChatUI();
-      document.getElementById('notasTexto').value = conversaAtual.notas || '';
-      await carregarMensagens();
-      escutarMensagens();
-      iniciarMonitorStatus();
+    async function openChat(id) {
+      let c = conversas.find(x => x.id === id);
+      if (!c) {
+        const { data } = await sb.from('conversas').select('*').eq('id', id).single();
+        if (!data) return alert('Não encontrado');
+        atual = data;
+      } else atual = c;
+      showChat();
+      document.getElementById('notasTxt').value = atual.notas || '';
+      await loadMsgs();
+      listen();
+      startHB();
+      startStatus();
+      // Admin marca msgs do cliente como lidas
+      if (!isCli) markRead('cliente');
     }
 
-    async function abrirConversaPorId(id) {
-      const { data, error } = await supabaseClient.from('conversas').select('*').eq('id', id).single();
+    async function openById(id) {
+      const { data, error } = await sb.from('conversas').select('*').eq('id', id).single();
       if (error || !data) {
-        document.getElementById('chatArea').innerHTML = '<div class="chat-vazio"><h2>Conversa não encontrada</h2></div>';
+        document.getElementById('chat').innerHTML = '<div class="chat-empty"><h2>Conversa não encontrada</h2></div>';
         return;
       }
-      conversas = [data];
-      conversaAtual = data;
-      document.querySelector('.sidebar').style.display = 'none';
-      const btnLink = document.querySelector('.header-actions');
-      if (btnLink) {
-        const linkBtn = btnLink.querySelector('[onclick="copiarLinkCliente()"]');
-        if (linkBtn) linkBtn.style.display = 'none';
-      }
-      mostrarChatUI();
-      await carregarMensagens();
-      escutarMensagens();
-      iniciarHeartbeat();
-      // Marca mensagens do agente como lidas
-      marcarMensagensLidas();
+      conversas = [data]; atual = data;
+      showChat();
+      await loadMsgs();
+      listen();
+      startHB();
+      startStatus();
+      markRead('agente');
     }
 
-    function mostrarChatUI() {
-      document.getElementById('chatVazio').style.display = 'none';
-      const el = document.getElementById('chatAtivo');
-      el.style.display = 'flex';
-      el.style.flexDirection = 'column';
-      el.style.height = '100%';
-      el.style.flex = '1';
-      el.style.minHeight = '0';
-      document.getElementById('chatNome').textContent = conversaAtual.nome;
-      document.getElementById('chatAvatar').textContent = conversaAtual.nome.charAt(0).toUpperCase();
-      document.getElementById('app').classList.add('chat-aberto');
-      renderizarLista(document.getElementById('busca')?.value || '');
-      atualizarStatusUI(conversaAtual.last_seen_cliente);
-      setTimeout(() => document.getElementById('messageInput')?.focus(), 200);
+    function showChat() {
+      document.getElementById('empty').style.display = 'none';
+      const a = document.getElementById('active');
+      a.style.display = 'flex'; a.style.flexDirection = 'column';
+      a.style.height = '100%'; a.style.flex = '1'; a.style.minHeight = '0';
+      document.getElementById('nome').textContent = atual.nome;
+      document.getElementById('av').textContent = atual.nome[0].toUpperCase();
+      document.getElementById('app').classList.add('open');
+      render(document.getElementById('busca')?.value || '');
+      const seen = isCli ? atual.last_seen_agente : atual.last_seen_cliente;
+      setStatus(seen);
+      setTimeout(() => document.getElementById('inp')?.focus(), 150);
     }
 
-    function fecharChatMobile() {
-      document.getElementById('app').classList.remove('chat-aberto');
-      document.getElementById('notasPanel').classList.remove('aberto');
-      conversaAtual = null;
-      if (channelMensagens) { supabaseClient.removeChannel(channelMensagens); channelMensagens = null; }
-      if (statusInterval) clearInterval(statusInterval);
+    function voltar() {
+      document.getElementById('app').classList.remove('open');
+      document.getElementById('notas').classList.remove('open');
+      atual = null;
+      if (channel) { sb.removeChannel(channel); channel = null; }
+      if (hb) clearInterval(hb); if (st) clearInterval(st);
     }
 
-    // ========== NOTAS ==========
     function toggleNotas() {
-      if (isCliente) return;
-      const panel = document.getElementById('notasPanel');
-      const btn = document.getElementById('btnNotas');
-      panel.classList.toggle('aberto');
-      btn.classList.toggle('ativo');
-      if (panel.classList.contains('aberto') && conversaAtual) {
-        document.getElementById('notasTexto').value = conversaAtual.notas || '';
-      }
+      if (isCli) return;
+      document.getElementById('notas').classList.toggle('open');
+      document.getElementById('btnNotas').classList.toggle('on');
+    }
+    async function saveNotas() {
+      if (!atual || isCli) return;
+      const notas = document.getElementById('notasTxt').value;
+      await sb.from('conversas').update({ notas }).eq('id', atual.id);
+      atual.notas = notas;
+      const c = conversas.find(x => x.id === atual.id); if (c) c.notas = notas;
+      render(document.getElementById('busca')?.value || '');
+      toast('Salvo!');
     }
 
-    async function salvarNotas() {
-      if (!conversaAtual || isCliente) return;
-      const notas = document.getElementById('notasTexto').value;
-      const { error } = await supabaseClient.from('conversas')
-        .update({ notas }).eq('id', conversaAtual.id);
-      if (error) return mostrarToast('Erro ao salvar', true);
-      conversaAtual.notas = notas;
-      // Atualiza na lista local
-      const c = conversas.find(x => x.id === conversaAtual.id);
-      if (c) c.notas = notas;
-      renderizarLista(document.getElementById('busca')?.value || '');
-      mostrarToast('Anotações salvas!');
+    async function loadMsgs() {
+      if (!atual) return;
+      const { data } = await sb.from('mensagens').select('*')
+        .eq('conversa_id', atual.id).order('created_at', { ascending: true });
+      document.getElementById('msgs').innerHTML = '';
+      for (const m of (data || [])) await addMsg(m);
+      scroll();
     }
 
-    // ========== MENSAGENS ==========
-    async function carregarMensagens() {
-      if (!conversaAtual) return;
-      const { data, error } = await supabaseClient.from('mensagens').select('*')
-        .eq('conversa_id', conversaAtual.id).order('created_at', { ascending: true });
-      const container = document.getElementById('messages');
-      container.innerHTML = '';
-      if (error) return console.error(error);
-      for (const msg of (data || [])) {
-        await adicionarMensagemNaTela(msg);
-      }
-      scrollParaBaixo();
-      if (isCliente) marcarMensagensLidas();
+    async function markRead(deQuem) {
+      if (!atual) return;
+      await sb.from('mensagens').update({ lida: true })
+        .eq('conversa_id', atual.id).eq('remetente', deQuem).eq('lida', false);
     }
 
-    async function marcarMensagensLidas() {
-      if (!conversaAtual || !isCliente) return;
-      await supabaseClient.from('mensagens')
-        .update({ lida: true })
-        .eq('conversa_id', conversaAtual.id)
-        .eq('remetente', 'agente')
-        .eq('lida', false);
-    }
-
-    function escutarMensagens() {
-      if (channelMensagens) supabaseClient.removeChannel(channelMensagens);
-      if (!conversaAtual) return;
-      channelMensagens = supabaseClient.channel('msgs-' + conversaAtual.id)
-        .on('postgres_changes', {
-          event: 'INSERT', schema: 'public', table: 'mensagens',
-          filter: 'conversa_id=eq.' + conversaAtual.id
-        }, async (payload) => {
-          await adicionarMensagemNaTela(payload.new);
-          scrollParaBaixo();
-          if (isCliente && payload.new.remetente === 'agente') {
-            // Marca como lida imediatamente
-            await supabaseClient.from('mensagens').update({ lida: true }).eq('id', payload.new.id);
-          }
-        })
-        .on('postgres_changes', {
-          event: 'UPDATE', schema: 'public', table: 'mensagens',
-          filter: 'conversa_id=eq.' + conversaAtual.id
-        }, (payload) => {
-          // Atualiza checks de leitura
-          const el = document.querySelector('[data-id="' + payload.new.id + '"] .checks');
-          if (el && payload.new.lida) {
-            el.classList.add('lida');
-            el.textContent = '✓✓';
-          }
-        })
+    function listen() {
+      if (channel) sb.removeChannel(channel);
+      if (!atual) return;
+      channel = sb.channel('c-' + atual.id)
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
+          async p => {
+            await addMsg(p.new); scroll();
+            // Se recebi mensagem do outro, marco como lida
+            const outro = isCli ? 'agente' : 'cliente';
+            if (p.new.remetente === outro) {
+              await sb.from('mensagens').update({ lida: true }).eq('id', p.new.id);
+            }
+          })
+        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
+          p => {
+            const el = document.querySelector('[data-id="'+p.new.id+'"] .ticks');
+            if (el && p.new.lida) { el.classList.add('read'); el.textContent = '✓✓'; }
+          })
         .subscribe();
     }
 
-    async function adicionarMensagemNaTela(msg) {
-      if (document.querySelector('[data-id="' + msg.id + '"]')) return;
+    async function addMsg(msg) {
+      if (document.querySelector('[data-id="'+msg.id+'"]')) return;
       const div = document.createElement('div');
-      const souEu = isCliente ? (msg.remetente === 'cliente') : (msg.remetente === 'agente');
-      div.className = 'msg ' + (souEu ? 'eu' : 'outro');
-      div.setAttribute('data-id', msg.id);
+      const me = isCli ? msg.remetente === 'cliente' : msg.remetente === 'agente';
+      div.className = 'bubble ' + (me ? 'me' : 'them');
+      div.dataset.id = msg.id;
 
       const tipo = (msg.tipo || 'texto').toLowerCase();
       let url = (msg.url_midia || '').trim();
-      const hora = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      const isEncryptedFile = url.includes('.enc');
+      const hora = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+      const encrypted = url.includes('.enc');
 
       let texto = msg.texto || '';
-      if (texto.startsWith('enc:') && conversaAtual) {
-        texto = await descriptografarTexto(texto, conversaAtual.id);
-      }
+      if (texto.startsWith('enc:') && atual) texto = await dec(texto, atual.id);
 
       if (url && (tipo === 'imagem' || tipo === 'image' || tipo === 'foto')) {
-        if (isEncryptedFile && conversaAtual) {
+        if (encrypted && atual) {
           try {
-            const resp = await fetch(url);
-            const dec = await descriptografarBlob(await resp.blob(), conversaAtual.id, 'image/jpeg');
-            if (dec) url = URL.createObjectURL(dec);
-          } catch(e) {}
+            const r = await fetch(url); const d = await decBlob(await r.blob(), atual.id, 'image/jpeg');
+            if (d) url = URL.createObjectURL(d);
+          } catch {}
         }
         const img = document.createElement('img');
-        img.src = url; img.alt = 'imagem'; img.loading = 'lazy';
-        img.onclick = () => abrirLightbox(url);
-        img.onerror = function() {
-          const a = document.createElement('a'); a.href = msg.url_midia; a.target = '_blank';
-          a.style.color = '#60a5fa'; a.textContent = '📷 Abrir imagem'; img.replaceWith(a);
-        };
+        img.src = url; img.onclick = () => openLb(url);
+        img.onerror = function() { this.outerHTML = '<a href="'+msg.url_midia+'" target="_blank" style="color:#38bdf8">📷 Abrir</a>'; };
         div.appendChild(img);
       } else if (url && tipo === 'video') {
-        if (isEncryptedFile && conversaAtual) {
-          try {
-            const resp = await fetch(url);
-            const dec = await descriptografarBlob(await resp.blob(), conversaAtual.id, 'video/mp4');
-            if (dec) url = URL.createObjectURL(dec);
-          } catch(e) {}
+        if (encrypted && atual) {
+          try { const r = await fetch(url); const d = await decBlob(await r.blob(), atual.id, 'video/mp4'); if (d) url = URL.createObjectURL(d); } catch {}
         }
-        const video = document.createElement('video');
-        video.src = url; video.controls = true; video.playsInline = true; video.preload = 'metadata';
-        video.style.maxWidth = '100%'; video.style.maxHeight = '280px'; video.style.borderRadius = '12px';
-        video.style.display = 'block'; video.style.background = '#000';
-        div.appendChild(video);
+        const v = document.createElement('video'); v.src = url; v.controls = true; v.playsInline = true;
+        v.style.cssText = 'max-width:100%;max-height:260px;border-radius:12px;display:block;background:#000';
+        div.appendChild(v);
       } else if (url && tipo === 'audio') {
-        const wrap = document.createElement('div');
-        wrap.style.minWidth = '220px';
-        wrap.style.width = '100%';
-
-        if (isEncryptedFile && conversaAtual) {
+        if (encrypted && atual) {
           try {
-            const resp = await fetch(url);
-            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            const encBlob = await resp.blob();
-            // Detecta mime pela extensão no nome do arquivo
-            let mimeGuess = 'audio/webm';
-            const path = (msg.url_midia || '').toLowerCase();
-            if (path.includes('.m4a') || path.includes('.mp4')) mimeGuess = 'audio/mp4';
-            else if (path.includes('.mp3')) mimeGuess = 'audio/mpeg';
-            else if (path.includes('.ogg')) mimeGuess = 'audio/ogg';
-            else if (path.includes('.wav')) mimeGuess = 'audio/wav';
-            
-            let dec = await descriptografarBlob(encBlob, conversaAtual.id, mimeGuess);
-            if (!dec) dec = await descriptografarBlob(encBlob, conversaAtual.id, 'audio/webm');
-            if (!dec) dec = await descriptografarBlob(encBlob, conversaAtual.id, 'audio/mp4');
-            if (dec) {
-              url = URL.createObjectURL(dec);
-            } else {
-              throw new Error('Falha na descriptografia');
-            }
-          } catch(e) {
-            console.error('Erro audio enc:', e);
-            const a = document.createElement('a');
-            a.href = msg.url_midia; a.target = '_blank';
-            a.style.color = '#60a5fa'; a.textContent = '🎤 Baixar áudio';
-            wrap.appendChild(a);
-            div.appendChild(wrap);
-            const meta = document.createElement('div');
-            meta.className = 'meta';
-            const horaEl = document.createElement('span');
-            horaEl.className = 'hora'; horaEl.textContent = hora;
-            meta.appendChild(horaEl);
-            if (msg.remetente === 'agente' && !isCliente) {
-              const checks = document.createElement('span');
-              checks.className = 'checks' + (msg.lida ? ' lida' : '');
-              checks.textContent = msg.lida ? '✓✓' : '✓';
-              meta.appendChild(checks);
-            }
-            div.appendChild(meta);
-            document.getElementById('messages').appendChild(div);
-            return;
-          }
+            const r = await fetch(url); const encB = await r.blob();
+            let mime = 'audio/webm';
+            const path = (msg.url_midia||'').toLowerCase();
+            if (path.includes('.m4a')||path.includes('.mp4')) mime = 'audio/mp4';
+            else if (path.includes('.mp3')) mime = 'audio/mpeg';
+            let d = await decBlob(encB, atual.id, mime);
+            if (!d) d = await decBlob(encB, atual.id, 'audio/webm');
+            if (d) url = URL.createObjectURL(d);
+          } catch(e) { console.error(e); }
         }
-
-        const audio = document.createElement('audio');
-        audio.src = url;
-        audio.controls = true;
-        audio.preload = 'auto';
-        audio.playsInline = true;
-        audio.style.width = '100%';
-        audio.style.minWidth = '200px';
-        audio.onerror = function() {
-          const a = document.createElement('a');
-          a.href = url; a.target = '_blank';
-          a.style.color = '#60a5fa'; a.textContent = '🎤 Abrir áudio';
-          wrap.innerHTML = '';
-          wrap.appendChild(a);
+        const a = document.createElement('audio'); a.src = url; a.controls = true; a.preload = 'auto';
+        a.style.cssText = 'width:100%;min-width:200px';
+        a.onerror = function() {
+          const link = document.createElement('a'); link.href = url; link.target = '_blank';
+          link.style.color = '#38bdf8'; link.textContent = '🎤 Abrir áudio';
+          this.replaceWith(link);
         };
-        wrap.appendChild(audio);
-        div.appendChild(wrap);
+        div.appendChild(a);
       } else if (url) {
-        const a = document.createElement('a');
-        a.className = 'arquivo'; a.href = url; a.target = '_blank';
-        a.innerHTML = '<span style="font-size:22px">📄</span><span>' + escapeHtml(texto || 'Arquivo') + '</span>';
+        const a = document.createElement('a'); a.className = 'file'; a.href = url; a.target = '_blank';
+        a.innerHTML = '<span>📄</span><span>'+esc(texto||'Arquivo')+'</span>';
         div.appendChild(a);
       }
 
       if (texto && tipo === 'texto') {
-        const span = document.createElement('span');
-        span.textContent = texto;
-        div.appendChild(span);
+        const s = document.createElement('span'); s.textContent = texto; div.appendChild(s);
       }
 
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      const horaEl = document.createElement('span');
-      horaEl.className = 'hora';
-      horaEl.textContent = hora;
-      meta.appendChild(horaEl);
+      const foot = document.createElement('div'); foot.className = 'foot';
+      const tm = document.createElement('span'); tm.className = 'time'; tm.textContent = hora;
+      foot.appendChild(tm);
 
-      // Checks de leitura (só mensagens do agente, vistas pelo admin)
-      if (msg.remetente === 'agente' && !isCliente) {
-        const checks = document.createElement('span');
-        checks.className = 'checks' + (msg.lida ? ' lida' : '');
-        checks.textContent = msg.lida ? '✓✓' : '✓';
-        meta.appendChild(checks);
+      // Ticks: nas minhas mensagens mostro status de leitura
+      if (me) {
+        const ticks = document.createElement('span');
+        ticks.className = 'ticks' + (msg.lida ? ' read' : '');
+        ticks.textContent = msg.lida ? '✓✓' : '✓';
+        foot.appendChild(ticks);
       }
-
-      div.appendChild(meta);
-      document.getElementById('messages').appendChild(div);
+      div.appendChild(foot);
+      document.getElementById('msgs').appendChild(div);
     }
 
-    function abrirLightbox(url) {
-      document.getElementById('lightboxImg').src = url;
-      document.getElementById('lightbox').classList.add('ativo');
-    }
-    function fecharLightbox() { document.getElementById('lightbox').classList.remove('ativo'); }
+    function openLb(u) { document.getElementById('lbImg').src = u; document.getElementById('lb').classList.add('on'); }
+    function fecharLb() { document.getElementById('lb').classList.remove('on'); }
 
-    async function enviarMensagem() {
-      if (!conversaAtual) return;
-      const input = document.getElementById('messageInput');
-      let texto = input.value.trim();
-      if (!texto) return;
-      const remetente = isCliente ? 'cliente' : 'agente';
-      input.value = '';
-      document.getElementById('sendBtn').disabled = true;
-
-      let textoFinal = texto;
-      if (remetente === 'agente') {
-        try { textoFinal = await criptografarTexto(texto, conversaAtual.id); }
-        catch(e) { mostrarToast('Erro ao criptografar', true); document.getElementById('sendBtn').disabled = false; return; }
-      }
-
-      const { error } = await supabaseClient.from('mensagens').insert([{
-        conversa_id: conversaAtual.id, texto: textoFinal, remetente, tipo: 'texto', lida: false
-      }]);
-      await supabaseClient.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', conversaAtual.id);
-      document.getElementById('sendBtn').disabled = false;
-      input.focus();
-      if (error) mostrarToast('Erro: ' + error.message, true);
+    async function sendMsg() {
+      if (!atual) return;
+      const input = document.getElementById('inp');
+      let t = input.value.trim(); if (!t) return;
+      const from = isCli ? 'cliente' : 'agente';
+      input.value = ''; document.getElementById('send').disabled = true;
+      let final = t;
+      if (from === 'agente') { try { final = await enc(t, atual.id); } catch { toast('Erro crypto', true); document.getElementById('send').disabled = false; return; } }
+      const { error } = await sb.from('mensagens').insert([{ conversa_id: atual.id, texto: final, remetente: from, tipo: 'texto', lida: false }]);
+      await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
+      document.getElementById('send').disabled = false; input.focus();
+      if (error) toast(error.message, true);
     }
 
-    function escolherArquivo(tipo) {
-      tipoArquivoAtual = tipo;
-      const input = document.getElementById('fileInput');
-      if (tipo === 'imagem') input.accept = 'image/*';
-      else if (tipo === 'video') input.accept = 'video/*';
-      else if (tipo === 'audio') input.accept = 'audio/*';
-      else input.accept = '*/*';
-      input.click();
+    function pick(tipo) {
+      tipoFile = tipo;
+      const i = document.getElementById('fileInput');
+      i.accept = tipo === 'imagem' ? 'image/*' : tipo === 'video' ? 'video/*' : tipo === 'audio' ? 'audio/*' : '*/*';
+      i.click();
     }
 
-    async function enviarArquivo(event) {
-      const file = event.target.files && event.target.files[0];
-      event.target.value = '';
-      if (!file || !conversaAtual) return;
-      if (file.size > 50 * 1024 * 1024) { mostrarToast('Arquivo muito grande (máx 50MB)', true); return; }
-
-      const toast = document.createElement('div');
-      toast.className = 'uploading'; toast.textContent = 'Enviando...';
-      document.body.appendChild(toast);
-
+    async function sendFile(ev) {
+      const file = ev.target.files?.[0]; ev.target.value = '';
+      if (!file || !atual) return;
+      if (file.size > 50*1024*1024) return toast('Máx 50MB', true);
+      const toastEl = document.createElement('div'); toastEl.className = 'uploading'; toastEl.textContent = 'Enviando...';
+      document.body.appendChild(toastEl);
       try {
-        let tipo = tipoArquivoAtual;
+        let tipo = tipoFile;
         if (file.type.startsWith('image/')) tipo = 'imagem';
         else if (file.type.startsWith('video/')) tipo = 'video';
         else if (file.type.startsWith('audio/')) tipo = 'audio';
-
-        let contentType = file.type || 'application/octet-stream';
+        let ct = file.type || 'application/octet-stream';
         const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
-        if (tipo === 'audio' && (!contentType || contentType === 'application/octet-stream')) {
-          if (ext === 'mp3') contentType = 'audio/mpeg';
-          else if (ext === 'm4a') contentType = 'audio/mp4';
-          else contentType = 'audio/webm';
+        if (tipo === 'audio' && (!ct || ct === 'application/octet-stream')) {
+          ct = ext === 'mp3' ? 'audio/mpeg' : ext === 'm4a' ? 'audio/mp4' : 'audio/webm';
         }
-
-        let nomeArquivo = conversaAtual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
-        let fileToUpload = file;
-        let contentTypeFinal = contentType;
-        let nomeFinal = nomeArquivo;
-        const remetente = isCliente ? 'cliente' : 'agente';
-
-        if (remetente === 'agente') {
-          fileToUpload = await criptografarBlob(file, conversaAtual.id);
-          contentTypeFinal = 'application/octet-stream';
-          nomeFinal = nomeArquivo + '.enc';
-        }
-
-        const { error: uploadError } = await supabaseClient.storage.from('midias')
-          .upload(nomeFinal, fileToUpload, { cacheControl: '3600', upsert: false, contentType: contentTypeFinal });
-        if (uploadError) throw new Error(uploadError.message || 'Falha no upload');
-
-        const { data: urlData } = supabaseClient.storage.from('midias').getPublicUrl(nomeFinal);
-        const url = urlData.publicUrl;
-
-        let texto = (tipo === 'arquivo') ? file.name : (file.name || '');
-        if (remetente === 'agente' && texto) {
-          try { texto = await criptografarTexto(texto, conversaAtual.id); } catch(e) {}
-        }
-
-        const { error: msgError } = await supabaseClient.from('mensagens').insert([{
-          conversa_id: conversaAtual.id, texto, remetente, tipo, url_midia: url, lida: false
-        }]);
-        if (msgError) throw new Error(msgError.message);
-        await supabaseClient.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', conversaAtual.id);
-        mostrarToast('Enviado!');
-      } catch (err) {
-        console.error(err);
-        mostrarToast('Erro: ' + (err.message || 'Falha'), true);
-      } finally { toast.remove(); }
+        let nome = atual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
+        let up = file, ctF = ct, nomeF = nome;
+        const from = isCli ? 'cliente' : 'agente';
+        if (from === 'agente') { up = await encBlob(file, atual.id); ctF = 'application/octet-stream'; nomeF = nome + '.enc'; }
+        const { error: ue } = await sb.storage.from('midias').upload(nomeF, up, { cacheControl:'3600', upsert:false, contentType:ctF });
+        if (ue) throw new Error(ue.message);
+        const { data: ud } = sb.storage.from('midias').getPublicUrl(nomeF);
+        let texto = file.name || '';
+        if (from === 'agente' && texto) try { texto = await enc(texto, atual.id); } catch {}
+        const { error: me } = await sb.from('mensagens').insert([{ conversa_id:atual.id, texto, remetente:from, tipo, url_midia:ud.publicUrl, lida:false }]);
+        if (me) throw new Error(me.message);
+        await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
+        toast('Enviado!');
+      } catch(e) { toast(e.message || 'Erro', true); }
+      finally { toastEl.remove(); }
     }
 
-    // ========== GRAVAÇÃO ÁUDIO ==========
-    async function toggleGravacao() {
-      if (gravando) pararGravacao();
-      else await iniciarGravacao();
-    }
-    async function iniciarGravacao() {
-      if (!conversaAtual) return mostrarToast('Abra uma conversa primeiro', true);
-      
-      // Verifica suporte
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        mostrarToast('Seu navegador não suporta gravação. Use o botão 🎵', true);
-        return;
-      }
-      if (typeof MediaRecorder === 'undefined') {
-        mostrarToast('Gravação não disponível neste navegador. Use o botão 🎵', true);
-        return;
-      }
-
+    async function toggleRec() { if (recording) stopRec(); else await startRec(); }
+    async function startRec() {
+      if (!atual) return toast('Abra uma conversa', true);
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined')
+        return toast('Use o botão 🎵', true);
       try {
-        mostrarToast('Pedindo permissão do microfone...');
-        streamAudio = await navigator.mediaDevices.getUserMedia({ 
-          audio: true
-        });
-        audioChunks = [];
-        const options = {};
-        // iOS prefere mp4/aac; Android prefere webm
-        if (MediaRecorder.isTypeSupported('audio/mp4')) options.mimeType = 'audio/mp4';
-        else if (MediaRecorder.isTypeSupported('audio/aac')) options.mimeType = 'audio/aac';
-        else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) options.mimeType = 'audio/webm;codecs=opus';
-        else if (MediaRecorder.isTypeSupported('audio/webm')) options.mimeType = 'audio/webm';
-        
-        mediaRecorder = new MediaRecorder(streamAudio, options);
-        mediaRecorder.ondataavailable = e => { if (e.data?.size > 0) audioChunks.push(e.data); };
-        mediaRecorder.onstop = async () => {
-          const mime = mediaRecorder.mimeType || options.mimeType || 'audio/webm';
-          const blob = new Blob(audioChunks, { type: mime });
-          if (streamAudio) { streamAudio.getTracks().forEach(t => t.stop()); streamAudio = null; }
-          if (blob.size < 500) return mostrarToast('Áudio muito curto, tente de novo', true);
-          await enviarBlobAudio(blob, mime);
+        toast('Pedindo microfone...');
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
+        const opt = {};
+        if (MediaRecorder.isTypeSupported('audio/mp4')) opt.mimeType = 'audio/mp4';
+        else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) opt.mimeType = 'audio/webm;codecs=opus';
+        else if (MediaRecorder.isTypeSupported('audio/webm')) opt.mimeType = 'audio/webm';
+        recorder = new MediaRecorder(stream, opt);
+        recorder.ondataavailable = e => { if (e.data?.size) chunks.push(e.data); };
+        recorder.onstop = async () => {
+          const mime = recorder.mimeType || opt.mimeType || 'audio/webm';
+          const blob = new Blob(chunks, { type: mime });
+          if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+          if (blob.size < 500) return toast('Áudio curto', true);
+          await sendAudio(blob, mime);
         };
-        mediaRecorder.onerror = (e) => {
-          console.error('MediaRecorder error', e);
-          mostrarToast('Erro na gravação', true);
-          pararGravacao();
-        };
-        mediaRecorder.start(200);
-        gravando = true;
-        const btn = document.getElementById('btnAudio');
-        if (btn) { btn.classList.add('gravando'); btn.textContent = '⏹'; }
-        mostrarToast('🔴 GRAVANDO — toque de novo para enviar');
-      } catch (err) {
-        console.error(err);
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          mostrarToast('Permissão negada. Ative o microfone nas configurações do site.', true);
-        } else if (err.name === 'NotFoundError') {
-          mostrarToast('Nenhum microfone encontrado', true);
-        } else {
-          mostrarToast('Erro: ' + (err.message || err.name) + ' — tente o botão 🎵', true);
-        }
+        recorder.start(200); recording = true;
+        const b = document.getElementById('btnMic');
+        if (b) { b.classList.add('rec'); b.textContent = '⏹'; }
+        toast('🔴 Gravando — toque de novo');
+      } catch(e) {
+        if (e.name === 'NotAllowedError') toast('Microfone negado', true);
+        else toast('Erro: use 🎵', true);
       }
     }
-    function pararGravacao() {
-      if (mediaRecorder && gravando) {
-        mediaRecorder.stop(); gravando = false;
-        const btn = document.getElementById('btnAudio');
-        if (btn) { btn.classList.remove('gravando'); btn.textContent = '🎤'; }
+    function stopRec() {
+      if (recorder && recording) {
+        recorder.stop(); recording = false;
+        const b = document.getElementById('btnMic');
+        if (b) { b.classList.remove('rec'); b.textContent = '🎤'; }
       }
     }
-    async function enviarBlobAudio(blob, mime) {
-      const toast = document.createElement('div');
-      toast.className = 'uploading'; toast.textContent = 'Enviando áudio...';
-      document.body.appendChild(toast);
+    async function sendAudio(blob, mime) {
+      const t = document.createElement('div'); t.className = 'uploading'; t.textContent = 'Enviando áudio...';
+      document.body.appendChild(t);
       try {
-        let ext = 'webm';
-        if (mime.includes('mp4')) ext = 'm4a';
-        else if (mime.includes('ogg')) ext = 'ogg';
-        let nomeArquivo = conversaAtual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
-        let blobFinal = blob; let mimeFinal = mime; let nomeFinal = nomeArquivo;
-        const remetente = isCliente ? 'cliente' : 'agente';
-        if (remetente === 'agente') {
-          blobFinal = await criptografarBlob(blob, conversaAtual.id);
-          mimeFinal = 'application/octet-stream';
-          nomeFinal = nomeArquivo + '.enc';
-        }
-        const { error: uploadError } = await supabaseClient.storage.from('midias')
-          .upload(nomeFinal, blobFinal, { cacheControl: '3600', upsert: false, contentType: mimeFinal });
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabaseClient.storage.from('midias').getPublicUrl(nomeFinal);
-        let textoAudio = 'Áudio';
-        if (remetente === 'agente') {
-          try { textoAudio = await criptografarTexto('Áudio', conversaAtual.id); } catch(e) {}
-        }
-        const { error: msgError } = await supabaseClient.from('mensagens').insert([{
-          conversa_id: conversaAtual.id, texto: textoAudio, remetente, tipo: 'audio', url_midia: urlData.publicUrl, lida: false
-        }]);
-        if (msgError) throw msgError;
-        await supabaseClient.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', conversaAtual.id);
-        mostrarToast('Áudio enviado!');
-      } catch (err) {
-        mostrarToast('Erro: ' + (err.message || err), true);
-      } finally { toast.remove(); }
+        let ext = 'webm'; if (mime.includes('mp4')) ext = 'm4a'; else if (mime.includes('ogg')) ext = 'ogg';
+        let nome = atual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
+        let up = blob, ct = mime, nomeF = nome;
+        const from = isCli ? 'cliente' : 'agente';
+        if (from === 'agente') { up = await encBlob(blob, atual.id); ct = 'application/octet-stream'; nomeF = nome + '.enc'; }
+        const { error: ue } = await sb.storage.from('midias').upload(nomeF, up, { cacheControl:'3600', upsert:false, contentType:ct });
+        if (ue) throw ue;
+        const { data: ud } = sb.storage.from('midias').getPublicUrl(nomeF);
+        let txt = 'Áudio';
+        if (from === 'agente') try { txt = await enc('Áudio', atual.id); } catch {}
+        await sb.from('mensagens').insert([{ conversa_id:atual.id, texto:txt, remetente:from, tipo:'audio', url_midia:ud.publicUrl, lida:false }]);
+        await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
+        toast('Áudio enviado!');
+      } catch(e) { toast(e.message || 'Erro', true); }
+      finally { t.remove(); }
     }
 
-    document.getElementById('messageInput').addEventListener('keypress', e => {
-      if (e.key === 'Enter') { e.preventDefault(); enviarMensagem(); }
+    document.getElementById('inp').addEventListener('keypress', e => {
+      if (e.key === 'Enter') { e.preventDefault(); sendMsg(); }
     });
 
-    function copiarLinkCliente() {
-      if (!conversaAtual) return;
-      let base = window.location.href.split('?')[0].split('#')[0];
-      const link = base + '?sala=' + conversaAtual.id + '&cliente=1';
-      prompt('Copie o link do cliente:', link);
-      if (navigator.clipboard) navigator.clipboard.writeText(link).then(() => mostrarToast('Link copiado!')).catch(() => {});
+    function copiarLink() {
+      if (!atual) return;
+      const base = location.href.split('?')[0].split('#')[0];
+      const link = base + '?sala=' + atual.id + '&cliente=1';
+      prompt('Link do cliente:', link);
+      if (navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast('Copiado!')).catch(()=>{});
     }
 
-    function formatarHora(data) {
-      if (!data) return '';
-      const d = new Date(data); const agora = new Date();
-      if (agora - d < 86400000 && d.getDate() === agora.getDate())
-        return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    function fmt(d) {
+      if (!d) return '';
+      const x = new Date(d), n = new Date();
+      if (n - x < 86400000 && x.getDate() === n.getDate()) return x.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      return x.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
     }
-    function escapeHtml(text) {
-      const div = document.createElement('div'); div.textContent = text || ''; return div.innerHTML;
-    }
-    function scrollParaBaixo() {
-      const c = document.getElementById('messages'); if (c) c.scrollTop = c.scrollHeight;
-    }
-    function mostrarToast(texto, erro = false) {
-      const t = document.createElement('div');
-      t.className = 'toast' + (erro ? ' erro' : ''); t.textContent = texto;
-      document.body.appendChild(t); setTimeout(() => t.remove(), 3500);
+    function esc(t) { const d = document.createElement('div'); d.textContent = t||''; return d.innerHTML; }
+    function scroll() { const c = document.getElementById('msgs'); if (c) c.scrollTop = c.scrollHeight; }
+    function toast(t, err) {
+      const e = document.createElement('div'); e.className = 'toast'+(err?' err':''); e.textContent = t;
+      document.body.appendChild(e); setTimeout(() => e.remove(), 3200);
     }
 
-    detectarModo();
+    init();
   </script>
 </body>
 </html>
