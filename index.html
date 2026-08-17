@@ -464,14 +464,33 @@
         video.style.background = '#000';
         div.appendChild(video);
       } else if (url && tipo === 'audio') {
+        const wrap = document.createElement('div');
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.gap = '6px';
+        wrap.style.minWidth = '220px';
+
         const audio = document.createElement('audio');
         audio.src = url;
         audio.controls = true;
-        audio.preload = 'metadata';
+        audio.preload = 'auto';
         audio.style.width = '100%';
-        audio.style.minWidth = '200px';
-        audio.style.margin = '4px 0';
-        div.appendChild(audio);
+        audio.setAttribute('controlsList', 'nodownload');
+        // Força o navegador a tentar carregar
+        audio.load();
+
+        audio.onerror = function() {
+          const a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.style.color = '#7dd3c0';
+          a.textContent = '🎤 Baixar / abrir áudio';
+          wrap.innerHTML = '';
+          wrap.appendChild(a);
+        };
+
+        wrap.appendChild(audio);
+        div.appendChild(wrap);
       } else if (url) {
         const a = document.createElement('a');
         a.className = 'arquivo';
@@ -559,12 +578,27 @@
         const nomeArquivo = conversaAtual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
 
         // Upload
+        // Define content-type correto para áudio
+        let contentType = file.type || 'application/octet-stream';
+        if (tipo === 'audio') {
+          if (!contentType || contentType === 'application/octet-stream') {
+            if (ext === 'mp3') contentType = 'audio/mpeg';
+            else if (ext === 'ogg') contentType = 'audio/ogg';
+            else if (ext === 'wav') contentType = 'audio/wav';
+            else if (ext === 'm4a' || ext === 'mp4') contentType = 'audio/mp4';
+            else if (ext === 'webm') contentType = 'audio/webm';
+            else contentType = 'audio/mpeg';
+          }
+        } else if (tipo === 'imagem' && (!contentType || contentType === 'application/octet-stream')) {
+          contentType = 'image/jpeg';
+        }
+
         const { data: uploadData, error: uploadError } = await supabaseClient.storage
           .from('midias')
           .upload(nomeArquivo, file, {
             cacheControl: '3600',
             upsert: false,
-            contentType: file.type || 'application/octet-stream'
+            contentType: contentType
           });
 
         if (uploadError) {
