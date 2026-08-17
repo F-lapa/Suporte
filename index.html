@@ -858,13 +858,22 @@
           });
         }
 
-        const { data, error } = await sb.functions.invoke('bot-suporte', {
-          body: { mensagens: historico }
+        // Chama a Edge Function direto (mais compatível)
+        const fnUrl = SUPABASE_URL + '/functions/v1/bot-suporte';
+        const resp = await fetch(fnUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            'apikey': SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({ mensagens: historico })
         });
 
-        if (error) {
-          console.error('Bot error:', error);
-          toast('Bot indisponível no momento', true);
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          console.error('Bot error:', resp.status, data);
+          toast('Bot indisponível: ' + (data?.error || data?.message || resp.status), true);
           return;
         }
         if (data?.error) {
@@ -875,6 +884,7 @@
         const resposta = data?.resposta;
         if (!resposta) {
           console.error('Sem resposta do bot', data);
+          toast('Bot sem resposta', true);
           return;
         }
 
