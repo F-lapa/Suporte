@@ -185,6 +185,33 @@
     }
     @media (max-width: 700px) { .btn-voltar { display: block; } }
     input[type="file"] { display: none; }
+
+    /* Proteção anti-print / anti-cópia (só no modo cliente) */
+    body.modo-cliente {
+      -webkit-user-select: none !important;
+      -moz-user-select: none !important;
+      -ms-user-select: none !important;
+      user-select: none !important;
+      -webkit-touch-callout: none !important;
+    }
+    body.modo-cliente img,
+    body.modo-cliente video,
+    body.modo-cliente audio {
+      pointer-events: none;
+      -webkit-user-drag: none;
+    }
+    body.modo-cliente #messages {
+      -webkit-user-select: none !important;
+      user-select: none !important;
+    }
+    /* Permite digitar no input mesmo com user-select none */
+    body.modo-cliente #messageInput,
+    body.modo-cliente input,
+    body.modo-cliente textarea {
+      -webkit-user-select: text !important;
+      user-select: text !important;
+      pointer-events: auto !important;
+    }
   </style>
 </head>
 <body>
@@ -253,7 +280,93 @@
   <script>
     const SUPABASE_URL = 'https://hthcmhbcgmwprhgubiuy.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_Z_4elpCD5ygI-SV_2ljJug_gHW0ipa2';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ========== CRIPTOGRAFIA (AES-GCM) ==========
+    // Chave secreta do sistema — troque se quiser
+    const CHAVE_SECRETA = 'AtendimentoSecreto2026!';
+
+    async function derivarChave(conversaId) {
+      const enc = new TextEncoder();
+      const material = await crypto.subtle.importKey(
+        'raw',
+        enc.encode(CHAVE_SECRETA + ':' + conversaId),
+        'PBKDF2',
+        false,
+        ['deriveKey']
+      );
+      return crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt: enc.encode('sal-atendimento-v1'),
+          iterations: 100000,
+          hash: 'SHA-256'
+        },
+        material,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }
+
+    async function criptografarTexto(texto, conversaId) {
+      const key = await derivarChave(conversaId);
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const encoded = new TextEncoder().encode(texto);
+      const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+      // Formato: enc:base64(iv + ciphertext)
+      const combined = new Uint8Array(iv.length + cipher.byteLength);
+      combined.set(iv, 0);
+      combined.set(new Uint8Array(cipher), iv.length);
+      let binary = '';
+      combined.forEach(b => binary += String.fromCharCode(b));
+      return 'enc:' + btoa(binary);
+    }
+
+    async function descriptografarTexto(texto, conversaId) {
+      if (!texto || !texto.startsWith('enc:')) return texto;
+      try {
+        const key = await derivarChave(conversaId);
+        const raw = atob(texto.slice(4));
+        const bytes = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+        const iv = bytes.slice(0, 12);
+        const data = bytes.slice(12);
+        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+        return new TextDecoder().decode(plain);
+      } catch (e) {
+        console.error('Falha ao descriptografar:', e);
+        return '[mensagem criptografada]';
+      }
+    }
+
+    async function criptografarBlob(blob, conversaId) {
+      const key = await derivarChave(conversaId);
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const buffer = await blob.arrayBuffer();
+      const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, buffer);
+      const combined = new Uint8Array(iv.length + cipher.byteLength);
+      combined.set(iv, 0);
+      combined.set(new Uint8Array(cipher), iv.length);
+      return new Blob([combined], { type: 'application/octet-stream' });
+    }
+
+    async function descriptografarBlob(encryptedBlob, conversaId, mimeType) {
+      try {
+        const key = await derivarChave(conversaId);
+        const buffer = await encryptedBlob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        const iv = bytes.slice(0, 12);
+        const data = bytes.slice(12);
+        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+        return new Blob([plain], { type: mimeType || 'application/octet-stream' });
+      } catch (e) {
+        console.error('Falha ao descriptografar arquivo:', e);
+        return null;
+      }
+    }
+
 
     let conversas = [];
     let conversaAtual = null;
@@ -276,6 +389,50 @@
     }
 
     // ========== GRAVAÇÃO DE ÁUDIO ==========
+    
+    // ========== PROTEÇÃO ANTI-PRINT (só cliente) ==========
+    function ativarProtecaoCliente() {
+      // Bloqueia clique direito
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      });
+
+      // Bloqueia atalhos de print / copiar / salvar
+      document.addEventListener('keydown', function(e) {
+        // PrintScreen, Ctrl+P, Ctrl+S, Ctrl+C, Ctrl+A, Ctrl+U, F12
+        if (
+          e.key === 'PrintScreen' ||
+          (e.ctrlKey && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S' || e.key === 'c' || e.key === 'C' || e.key === 'a' || e.key === 'A' || e.key === 'u' || e.key === 'U')) ||
+          (e.metaKey && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S' || e.key === 'c' || e.key === 'C')) ||
+          e.key === 'F12'
+        ) {
+          e.preventDefault();
+          mostrarToast('Ação bloqueada', true);
+          return false;
+        }
+      });
+
+      // Bloqueia arrastar imagens
+      document.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+        return false;
+      });
+
+      // Tenta detectar perda de foco (às vezes usado em print)
+      document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+          // Opcional: esconder conteúdo quando sair da aba
+          const msgs = document.getElementById('messages');
+          if (msgs) msgs.style.filter = 'blur(20px)';
+        } else {
+          const msgs = document.getElementById('messages');
+          if (msgs) msgs.style.filter = 'none';
+        }
+      });
+    }
+
+
     async function toggleGravacao() {
       if (gravando) {
         pararGravacao();
@@ -382,26 +539,40 @@
 
         const nomeArquivo = conversaAtual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
 
+        let blobFinal = blob;
+        let mimeFinal = mime;
+        let nomeFinal = nomeArquivo;
+        const remetente = isCliente ? 'cliente' : 'agente';
+
+        if (remetente === 'agente') {
+          blobFinal = await criptografarBlob(blob, conversaAtual.id);
+          mimeFinal = 'application/octet-stream';
+          nomeFinal = nomeArquivo + '.enc';
+        }
+
         const { error: uploadError } = await supabaseClient.storage
           .from('midias')
-          .upload(nomeArquivo, blob, {
+          .upload(nomeFinal, blobFinal, {
             cacheControl: '3600',
             upsert: false,
-            contentType: mime
+            contentType: mimeFinal
           });
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabaseClient.storage
           .from('midias')
-          .getPublicUrl(nomeArquivo);
+          .getPublicUrl(nomeFinal);
 
         const url = urlData.publicUrl;
-        const remetente = isCliente ? 'cliente' : 'agente';
+        let textoAudio = 'Áudio';
+        if (remetente === 'agente') {
+          try { textoAudio = await criptografarTexto('Áudio', conversaAtual.id); } catch(e) {}
+        }
 
         const { error: msgError } = await supabaseClient.from('mensagens').insert([{
           conversa_id: conversaAtual.id,
-          texto: 'Áudio',
+          texto: textoAudio,
           remetente: remetente,
           tipo: 'audio',
           url_midia: url
@@ -428,6 +599,8 @@
       isCliente = params.get('cliente') === '1';
       if (sala && isCliente) {
         document.querySelector('.sidebar').style.display = 'none';
+        document.body.classList.add('modo-cliente');
+        ativarProtecaoCliente();
         abrirConversaPorId(sala);
       } else {
         carregarConversas();
@@ -585,86 +758,133 @@
       div.setAttribute('data-id', msg.id);
 
       const tipo = (msg.tipo || 'texto').toLowerCase();
-      const url = (msg.url_midia || '').trim();
+      let url = (msg.url_midia || '').trim();
       const hora = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const isEncryptedFile = url.endsWith('.enc') || url.includes('.enc');
 
-      // Constrói o conteúdo de forma segura (sem template string quebrando URL)
-      if (url && (tipo === 'imagem' || tipo === 'image' || tipo === 'foto')) {
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = 'imagem';
-        img.loading = 'lazy';
-        img.style.maxWidth = '100%';
-        img.style.maxHeight = '280px';
-        img.style.borderRadius = '8px';
-        img.style.display = 'block';
-        img.style.marginBottom = '4px';
-        img.style.cursor = 'pointer';
-        img.onclick = function() { abrirLightbox(url); };
-        img.onerror = function() {
+      // Processa de forma assíncrona (descriptografia)
+      (async () => {
+        let texto = msg.texto || '';
+        
+        // Descriptografa texto se necessário
+        if (texto.startsWith('enc:') && conversaAtual) {
+          texto = await descriptografarTexto(texto, conversaAtual.id);
+        }
+
+        if (url && (tipo === 'imagem' || tipo === 'image' || tipo === 'foto')) {
+          if (isEncryptedFile && conversaAtual) {
+            try {
+              const resp = await fetch(url);
+              const encBlob = await resp.blob();
+              const decBlob = await descriptografarBlob(encBlob, conversaAtual.id, 'image/jpeg');
+              if (decBlob) {
+                url = URL.createObjectURL(decBlob);
+              }
+            } catch (e) {
+              console.error('Erro dec img:', e);
+            }
+          }
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = 'imagem';
+          img.loading = 'lazy';
+          img.style.maxWidth = '100%';
+          img.style.maxHeight = '280px';
+          img.style.borderRadius = '8px';
+          img.style.display = 'block';
+          img.style.marginBottom = '4px';
+          img.style.cursor = 'pointer';
+          img.onclick = function() { abrirLightbox(url); };
+          img.onerror = function() {
+            const a = document.createElement('a');
+            a.href = msg.url_midia;
+            a.target = '_blank';
+            a.style.color = '#7dd3c0';
+            a.textContent = '📷 Abrir imagem';
+            img.replaceWith(a);
+          };
+          div.insertBefore(img, div.firstChild);
+        } else if (url && tipo === 'video') {
+          if (isEncryptedFile && conversaAtual) {
+            try {
+              const resp = await fetch(url);
+              const encBlob = await resp.blob();
+              const decBlob = await descriptografarBlob(encBlob, conversaAtual.id, 'video/mp4');
+              if (decBlob) url = URL.createObjectURL(decBlob);
+            } catch (e) { console.error(e); }
+          }
+          const video = document.createElement('video');
+          video.src = url;
+          video.controls = true;
+          video.playsInline = true;
+          video.preload = 'metadata';
+          video.style.maxWidth = '100%';
+          video.style.maxHeight = '280px';
+          video.style.borderRadius = '8px';
+          video.style.display = 'block';
+          video.style.marginBottom = '4px';
+          video.style.background = '#000';
+          div.insertBefore(video, div.firstChild);
+        } else if (url && tipo === 'audio') {
+          if (isEncryptedFile && conversaAtual) {
+            try {
+              const resp = await fetch(url);
+              const encBlob = await resp.blob();
+              const decBlob = await descriptografarBlob(encBlob, conversaAtual.id, 'audio/webm');
+              if (decBlob) url = URL.createObjectURL(decBlob);
+            } catch (e) { console.error(e); }
+          }
+          const wrap = document.createElement('div');
+          wrap.style.display = 'flex';
+          wrap.style.flexDirection = 'column';
+          wrap.style.gap = '6px';
+          wrap.style.minWidth = '220px';
+          const audio = document.createElement('audio');
+          audio.src = url;
+          audio.controls = true;
+          audio.preload = 'auto';
+          audio.style.width = '100%';
+          audio.load();
+          audio.onerror = function() {
+            const a = document.createElement('a');
+            a.href = msg.url_midia;
+            a.target = '_blank';
+            a.style.color = '#7dd3c0';
+            a.textContent = '🎤 Baixar / abrir áudio';
+            wrap.innerHTML = '';
+            wrap.appendChild(a);
+          };
+          wrap.appendChild(audio);
+          div.insertBefore(wrap, div.firstChild);
+        } else if (url) {
           const a = document.createElement('a');
+          a.className = 'arquivo';
           a.href = url;
           a.target = '_blank';
-          a.style.color = '#7dd3c0';
-          a.textContent = '📷 Abrir imagem';
-          img.replaceWith(a);
-        };
-        div.appendChild(img);
-      } else if (url && tipo === 'video') {
-        const video = document.createElement('video');
-        video.src = url;
-        video.controls = true;
-        video.playsInline = true;
-        video.preload = 'metadata';
-        video.style.maxWidth = '100%';
-        video.style.maxHeight = '280px';
-        video.style.borderRadius = '8px';
-        video.style.display = 'block';
-        video.style.marginBottom = '4px';
-        video.style.background = '#000';
-        div.appendChild(video);
-      } else if (url && tipo === 'audio') {
-        const wrap = document.createElement('div');
-        wrap.style.display = 'flex';
-        wrap.style.flexDirection = 'column';
-        wrap.style.gap = '6px';
-        wrap.style.minWidth = '220px';
+          const nomeArquivo = texto.startsWith('enc:') ? 'Arquivo' : (texto || 'Baixar arquivo');
+          a.innerHTML = '<span style="font-size:24px">📄</span><span>' + escapeHtml(nomeArquivo) + '</span>';
+          div.insertBefore(a, div.firstChild);
+        }
 
-        const audio = document.createElement('audio');
-        audio.src = url;
-        audio.controls = true;
-        audio.preload = 'auto';
-        audio.style.width = '100%';
-        audio.setAttribute('controlsList', 'nodownload');
-        // Força o navegador a tentar carregar
-        audio.load();
+        if (texto && tipo === 'texto') {
+          // Insere o texto no início (antes da hora)
+          const span = document.createElement('span');
+          span.textContent = texto;
+          const horaEl = div.querySelector('.hora');
+          if (horaEl) div.insertBefore(span, horaEl);
+          else div.appendChild(span);
+        }
 
-        audio.onerror = function() {
-          const a = document.createElement('a');
-          a.href = url;
-          a.target = '_blank';
-          a.style.color = '#7dd3c0';
-          a.textContent = '🎤 Baixar / abrir áudio';
-          wrap.innerHTML = '';
-          wrap.appendChild(a);
-        };
-
-        wrap.appendChild(audio);
-        div.appendChild(wrap);
-      } else if (url) {
-        const a = document.createElement('a');
-        a.className = 'arquivo';
-        a.href = url;
-        a.target = '_blank';
-        a.innerHTML = '<span style="font-size:24px">📄</span><span>' + escapeHtml(msg.texto || 'Baixar arquivo') + '</span>';
-        div.appendChild(a);
-      }
-
-      if (msg.texto && tipo === 'texto') {
-        const span = document.createElement('span');
-        span.textContent = msg.texto;
-        div.appendChild(span);
-      }
+        // Cadeado visual para mensagens criptografadas do admin
+        if (msg.remetente === 'agente' && (msg.texto || '').startsWith('enc:')) {
+          const lock = document.createElement('span');
+          lock.textContent = ' 🔒';
+          lock.style.fontSize = '11px';
+          lock.title = 'Mensagem criptografada';
+          const horaEl = div.querySelector('.hora');
+          if (horaEl) horaEl.appendChild(lock);
+        }
+      })();
 
       const horaDiv = document.createElement('div');
       horaDiv.className = 'hora';
@@ -685,13 +905,27 @@
     async function enviarMensagem() {
       if (!conversaAtual) return;
       const input = document.getElementById('messageInput');
-      const texto = input.value.trim();
+      let texto = input.value.trim();
       if (!texto) return;
       const remetente = isCliente ? 'cliente' : 'agente';
       input.value = '';
       document.getElementById('sendBtn').disabled = true;
+
+      // Criptografa se for o administrador
+      let textoFinal = texto;
+      if (remetente === 'agente') {
+        try {
+          textoFinal = await criptografarTexto(texto, conversaAtual.id);
+        } catch (e) {
+          console.error(e);
+          mostrarToast('Erro ao criptografar', true);
+          document.getElementById('sendBtn').disabled = false;
+          return;
+        }
+      }
+
       const { error } = await supabaseClient.from('mensagens').insert([{
-        conversa_id: conversaAtual.id, texto, remetente, tipo: 'texto'
+        conversa_id: conversaAtual.id, texto: textoFinal, remetente, tipo: 'texto'
       }]);
       await supabaseClient.from('conversas')
         .update({ updated_at: new Date().toISOString() })
@@ -753,12 +987,25 @@
           contentType = 'image/jpeg';
         }
 
+        let fileToUpload = file;
+        let contentTypeFinal = contentType;
+        let nomeFinal = nomeArquivo;
+
+        // Criptografa mídia se for o administrador
+        const remetenteCheck = isCliente ? 'cliente' : 'agente';
+        if (remetenteCheck === 'agente') {
+          fileToUpload = await criptografarBlob(file, conversaAtual.id);
+          contentTypeFinal = 'application/octet-stream';
+          // marca arquivo como criptografado no nome
+          nomeFinal = nomeArquivo + '.enc';
+        }
+
         const { data: uploadData, error: uploadError } = await supabaseClient.storage
           .from('midias')
-          .upload(nomeArquivo, file, {
+          .upload(nomeFinal, fileToUpload, {
             cacheControl: '3600',
             upsert: false,
-            contentType: contentType
+            contentType: contentTypeFinal
           });
 
         if (uploadError) {
@@ -769,13 +1016,18 @@
         // URL pública
         const { data: urlData } = supabaseClient.storage
           .from('midias')
-          .getPublicUrl(nomeArquivo);
+          .getPublicUrl(nomeFinal);
 
         const url = urlData.publicUrl;
         if (!url) throw new Error('Não foi possível gerar URL do arquivo');
 
         const remetente = isCliente ? 'cliente' : 'agente';
-        const texto = (tipo === 'arquivo') ? file.name : (file.name || '');
+        let texto = (tipo === 'arquivo') ? file.name : (file.name || '');
+
+        // Marca texto como criptografado se admin
+        if (remetente === 'agente' && texto) {
+          try { texto = await criptografarTexto(texto, conversaAtual.id); } catch(e) {}
+        }
 
         const { error: msgError } = await supabaseClient.from('mensagens').insert([{
           conversa_id: conversaAtual.id,
