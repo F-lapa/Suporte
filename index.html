@@ -225,6 +225,7 @@
           <button class="btn-midia" onclick="escolherArquivo('video')" title="Vídeo">🎬</button>
           <button class="btn-midia" onclick="escolherArquivo('arquivo')" title="Arquivo">📎</button>
           <button class="btn-midia" id="btnAudio" onclick="toggleGravacao()" title="Gravar áudio">🎤</button>
+          <button class="btn-midia" onclick="escolherArquivo('audio')" title="Enviar áudio do celular">🎵</button>
           <input type="file" id="fileInput" onchange="enviarArquivo(event)">
           <input type="text" id="messageInput" placeholder="Digite uma mensagem..." autocomplete="off">
           <button id="sendBtn" onclick="enviarMensagem()">➤</button>
@@ -290,7 +291,13 @@
       }
       try {
         // Pede permissão do microfone
-        streamAudio = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mostrarToast('Pedindo permissão do microfone...');
+        streamAudio = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true
+          }
+        });
         
         audioChunks = [];
         const options = {};
@@ -336,7 +343,7 @@
           btn.textContent = '⏹';
           btn.title = 'Parar gravação';
         }
-        mostrarToast('Gravando... toque de novo para parar');
+        mostrarToast('🔴 GRAVANDO — toque no microfone de novo para enviar');
 
       } catch (err) {
         console.error(err);
