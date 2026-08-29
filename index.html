@@ -489,11 +489,62 @@
       -webkit-user-select: none !important; user-select: none !important;
       -webkit-touch-callout: none !important;
     }
-    body.cli img, body.cli video { pointer-events: none; -webkit-user-drag: none; }
+    body.cli img, body.cli video { -webkit-user-drag: none; }
     body.cli #inp, body.cli input {
       -webkit-user-select: text !important; user-select: text !important;
       pointer-events: auto !important;
     }
+
+    /* ===== LAYOUT FIXO DO CLIENTE ===== */
+    body.cli .login-screen { display: none !important; }
+    body.cli .sidebar { display: none !important; }
+    body.cli .notas { display: none !important; }
+    body.cli .back { display: none !important; }
+    body.cli .head-btns { display: none !important; }
+    body.cli .app {
+      display: block !important;
+      height: 100vh; height: 100dvh;
+    }
+    body.cli .chat {
+      display: flex !important;
+      width: 100% !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      min-height: 0;
+    }
+    body.cli #empty { display: none !important; }
+    body.cli #active {
+      display: flex !important;
+      flex-direction: column !important;
+      height: 100% !important;
+      width: 100% !important;
+      flex: 1 !important;
+      min-height: 0 !important;
+    }
+    body.cli .chat-head {
+      padding: 10px 14px;
+      min-height: 60px;
+    }
+    body.cli .composer {
+      flex-wrap: nowrap;
+      gap: 4px;
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    }
+    body.cli .mbtn {
+      width: 36px; height: 36px; font-size: 16px;
+      flex-shrink: 0;
+    }
+    body.cli #inp {
+      min-width: 0;
+      flex: 1 1 auto;
+      padding: 11px 12px;
+      font-size: 15px;
+    }
+    body.cli #send {
+      width: 42px; height: 42px;
+      flex-shrink: 0;
+    }
+    body.cli .bubble { max-width: 86%; }
 
     @media (max-width: 800px) {
       .sidebar { width: 100%; }
@@ -502,13 +553,27 @@
       .notas.open { display: flex !important; }
       .app.open .sidebar { display: none; }
       .app.open .chat { display: flex; }
+      body.cli .chat { display: flex !important; }
+      body.cli .app.open .sidebar { display: none !important; }
+      .composer { flex-wrap: nowrap; }
+      .mbtn { width: 36px; height: 36px; }
     }
     .back {
       display: none; background: var(--surface2); border: none;
       color: var(--text); font-size: 20px; cursor: pointer;
       width: 36px; height: 36px; border-radius: 11px;
     }
-    @media (max-width: 800px) { .back { display: flex; align-items: center; justify-content: center; } }
+    @media (max-width: 800px) {
+      body:not(.cli) .back { display: flex; align-items: center; justify-content: center; }
+    }
+
+    @media (max-width: 420px) {
+      body.cli .mbtn:nth-of-type(2),
+      body.cli .mbtn:nth-of-type(3),
+      body.cli .mbtn:nth-of-type(5) {
+        display: none;
+      }
+    }
     input[type="file"] { display: none; }
   </style>
 
