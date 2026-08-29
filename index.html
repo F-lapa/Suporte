@@ -606,6 +606,49 @@
         display: none;
       }
     }
+
+    .call-overlay {
+      position: fixed; inset: 0; z-index: 400;
+      background: #070b12;
+      display: none; flex-direction: column;
+    }
+    .call-overlay.on { display: flex; }
+    .call-remote {
+      flex: 1; background: #000; object-fit: cover; width: 100%; min-height: 0;
+    }
+    .call-local {
+      position: absolute; right: 12px; bottom: 92px;
+      width: 110px; height: 150px; object-fit: cover;
+      border-radius: 14px; border: 2px solid rgba(255,255,255,0.25);
+      background: #111; z-index: 2;
+    }
+    .call-bar {
+      padding: 14px 16px calc(14px + env(safe-area-inset-bottom,0px));
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+      background: var(--surface);
+    }
+    .call-hang {
+      width: 56px; height: 56px; border-radius: 50%; border: none;
+      background: #ef4444; color: #fff; font-size: 22px; cursor: pointer;
+    }
+    .call-info {
+      position: absolute; top: 16px; left: 0; right: 0;
+      text-align: center; color: #fff; font-weight: 600;
+      text-shadow: 0 2px 8px #000;
+    }
+    .call-incoming {
+      position: fixed; inset: 0; z-index: 410;
+      background: rgba(7,11,18,0.92);
+      display: none; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px; text-align: center; padding: 24px;
+    }
+    .call-incoming.on { display: flex; }
+    .call-incoming h3 { font-size: 20px; }
+    .call-incoming p { color: var(--text2); }
+    .call-actions { display: flex; gap: 16px; margin-top: 10px; }
+    .call-ok { background: #22c55e; color:#fff; border:none; padding:14px 22px; border-radius:14px; font-weight:700; cursor:pointer; }
+    .call-no { background: #ef4444; color:#fff; border:none; padding:14px 22px; border-radius:14px; font-weight:700; cursor:pointer; }
+
     input[type="file"] { display: none; }
   </style>
 
@@ -662,6 +705,7 @@
           <div class="head-btns">
             <button class="hbtn" id="btnBot" onclick="toggleBot()" style="display:none" title="Bot">👤 <span class="lbl">Assumir</span></button>
             <button class="hbtn" id="btnNotas" onclick="toggleNotas()" title="Notas">📝 <span class="lbl">Notas</span></button>
+            <button class="hbtn" id="btnCall" onclick="iniciarChamada()" title="Chamada">📹 <span class="lbl">Chamada</span></button>
             <button class="hbtn" id="btnLink" onclick="copiarLink()" title="Link">🔗 <span class="lbl">Link</span></button>
           </div>
         </div>
@@ -706,6 +750,25 @@
   <div class="lb" id="lb" onclick="fecharLb()">
     <button class="x" onclick="fecharLb()">✕</button>
     <img id="lbImg" src="" alt="">
+  </div>
+
+  
+  <div class="call-incoming" id="callIncoming">
+    <div class="av" style="width:72px;height:72px;font-size:28px;background:url('suporte-avatar.png') center/cover"></div>
+    <h3 id="callIncomingTitle">Chamada de vídeo</h3>
+    <p>O suporte quer iniciar uma chamada.<br>Câmera e microfone serão usados só nesta ligação.</p>
+    <div class="call-actions">
+      <button class="call-no" onclick="recusarChamada()">Recusar</button>
+      <button class="call-ok" onclick="aceitarChamada()">Atender</button>
+    </div>
+  </div>
+  <div class="call-overlay" id="callOverlay">
+    <div class="call-info" id="callInfo">Conectando...</div>
+    <video id="callRemote" class="call-remote" autoplay playsinline></video>
+    <video id="callLocal" class="call-local" autoplay playsinline muted></video>
+    <div class="call-bar">
+      <button class="call-hang" onclick="encerrarChamada()" title="Encerrar">📞</button>
+    </div>
   </div>
 
   <script>
@@ -811,6 +874,163 @@
       else { el.textContent = 'Offline'; el.className = 'status'; }
     }
 
+
+    // ===== CHAMADA WEBRTC (explícita) =====
+    let pc = null, localStream = null, callChan = null, chamadaAtiva = false;
+
+    function callChannelName() {
+      return 'chamada-' + (atual && atual.id);
+    }
+
+    async function garantirCanalChamada() {
+      if (!atual) return;
+      if (callChan) return callChan;
+      callChan = sb.channel(callChannelName());
+      callChan.on('broadcast', { event: 'sinal' }, async ({ payload }) => {
+        await onSinalChamada(payload);
+      });
+      await callChan.subscribe();
+      return callChan;
+    }
+
+    async function enviarSinal(data) {
+      if (!callChan) await garantirCanalChamada();
+      await callChan.send({ type: 'broadcast', event: 'sinal', payload: data });
+    }
+
+    async function criarPeer(isOfferer) {
+      pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+      pc.onicecandidate = (e) => {
+        if (e.candidate) enviarSinal({ tipo: 'ice', from: isCli ? 'cliente' : 'agente', candidate: e.candidate });
+      };
+      pc.ontrack = (e) => {
+        const v = document.getElementById('callRemote');
+        if (v) v.srcObject = e.streams[0];
+        document.getElementById('callInfo').textContent = 'Em chamada';
+      };
+      pc.onconnectionstatechange = () => {
+        if (pc && (pc.connectionState === 'failed' || pc.connectionState === 'disconnected')) {
+          document.getElementById('callInfo').textContent = 'Reconectando...';
+        }
+      };
+      if (localStream) {
+        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+      }
+    }
+
+    async function pedirMidia() {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const v = document.getElementById('callLocal');
+      if (v) v.srcObject = localStream;
+    }
+
+    function mostrarCallUI() {
+      document.getElementById('callOverlay').classList.add('on');
+      chamadaAtiva = true;
+    }
+
+    function esconderCallUI() {
+      document.getElementById('callOverlay').classList.remove('on');
+      document.getElementById('callIncoming').classList.remove('on');
+      chamadaAtiva = false;
+    }
+
+    async function iniciarChamada() {
+      if (!atual || isCli) return;
+      try {
+        await garantirCanalChamada();
+        await pedirMidia();
+        mostrarCallUI();
+        document.getElementById('callInfo').textContent = 'Chamando cliente...';
+        await criarPeer(true);
+        await enviarSinal({ tipo: 'convite', from: 'agente' });
+        toast('Chamando o cliente...');
+      } catch (e) {
+        toast('Permita câmera e microfone para ligar', true);
+        encerrarChamada(true);
+      }
+    }
+
+    async function aceitarChamada() {
+      document.getElementById('callIncoming').classList.remove('on');
+      try {
+        await garantirCanalChamada();
+        await pedirMidia();
+        mostrarCallUI();
+        document.getElementById('callInfo').textContent = 'Conectando...';
+        await criarPeer(false);
+        await enviarSinal({ tipo: 'aceito', from: 'cliente' });
+      } catch (e) {
+        toast('É preciso permitir câmera e microfone', true);
+        await enviarSinal({ tipo: 'recusa', from: 'cliente' });
+        encerrarChamada(true);
+      }
+    }
+
+    async function recusarChamada() {
+      document.getElementById('callIncoming').classList.remove('on');
+      await garantirCanalChamada();
+      await enviarSinal({ tipo: 'recusa', from: isCli ? 'cliente' : 'agente' });
+    }
+
+    async function onSinalChamada(msg) {
+      if (!msg || !atual) return;
+      const eu = isCli ? 'cliente' : 'agente';
+      if (msg.from === eu) return;
+
+      if (msg.tipo === 'convite' && isCli) {
+        document.getElementById('callIncomingTitle').textContent = 'Suporte está ligando';
+        document.getElementById('callIncoming').classList.add('on');
+        return;
+      }
+      if (msg.tipo === 'recusa') {
+        toast('Chamada recusada', true);
+        encerrarChamada(true);
+        return;
+      }
+      if (msg.tipo === 'encerrar') {
+        encerrarChamada(true);
+        return;
+      }
+      if (msg.tipo === 'aceito' && !isCli) {
+        document.getElementById('callInfo').textContent = 'Cliente atendeu...';
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await enviarSinal({ tipo: 'offer', from: 'agente', sdp: offer });
+        return;
+      }
+      if (msg.tipo === 'offer' && isCli) {
+        if (!pc) await criarPeer(false);
+        await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await enviarSinal({ tipo: 'answer', from: 'cliente', sdp: answer });
+        return;
+      }
+      if (msg.tipo === 'answer' && !isCli) {
+        await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+        return;
+      }
+      if (msg.tipo === 'ice' && pc) {
+        try { await pc.addIceCandidate(new RTCIceCandidate(msg.candidate)); } catch (e) {}
+      }
+    }
+
+    async function encerrarChamada(silencio) {
+      if (!silencio) {
+        try { await enviarSinal({ tipo: 'encerrar', from: isCli ? 'cliente' : 'agente' }); } catch(e) {}
+      }
+      esconderCallUI();
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
+      }
+      if (pc) { try { pc.close(); } catch(e) {} pc = null; }
+    }
+
+
     function init() {
       const p = new URLSearchParams(location.search);
       const sala = p.get('sala');
@@ -824,6 +1044,8 @@
         document.getElementById('btnLink').style.display = 'none';
         const btnBot = document.getElementById('btnBot');
         if (btnBot) btnBot.style.display = 'none';
+        const btnCall = document.getElementById('btnCall');
+        if (btnCall) btnCall.style.display = 'none';
         document.body.classList.add('cli');
         protect();
         openById(sala);
@@ -1016,6 +1238,7 @@
       const seen = isCli ? atual.last_seen_agente : atual.last_seen_cliente;
       setStatus(seen);
       if (!isCli) updateBotBtn();
+      garantirCanalChamada();
       setTimeout(() => document.getElementById('inp')?.focus(), 150);
     }
 
