@@ -552,11 +552,43 @@
       .notas { display: none !important; position: fixed; inset: 0; width: 100%; z-index: 50; }
       .notas.open { display: flex !important; }
       .app.open .sidebar { display: none; }
-      .app.open .chat { display: flex; }
+      .app.open .chat { display: flex; width: 100%; min-width: 0; }
       body.cli .chat { display: flex !important; }
       body.cli .app.open .sidebar { display: none !important; }
-      .composer { flex-wrap: nowrap; }
-      .mbtn { width: 36px; height: 36px; }
+
+      .chat-head {
+        padding: 8px 10px;
+        min-height: 56px;
+        gap: 8px;
+      }
+      .chat-head .av { width: 38px; height: 38px; font-size: 14px; }
+      .chat-head-info { min-width: 0; flex: 1; }
+      .chat-head-info h2 {
+        font-size: 14px;
+        max-width: 100%;
+      }
+      .head-btns {
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .head-btns .hbtn {
+        padding: 7px 8px;
+        font-size: 16px;
+        min-width: 36px;
+        text-align: center;
+      }
+      /* No celular os botões viram só ícone (texto some via JS class) */
+      .hbtn .lbl { display: none; }
+
+      .composer {
+        flex-wrap: nowrap;
+        gap: 4px;
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+      }
+      .mbtn { width: 34px; height: 34px; font-size: 15px; }
+      #inp { min-width: 0; flex: 1; padding: 10px 12px; font-size: 14px; }
+      #send { width: 40px; height: 40px; font-size: 16px; }
+      .bubble { max-width: 84%; }
     }
     .back {
       display: none; background: var(--surface2); border: none;
@@ -628,9 +660,9 @@
             <div class="status" id="status">Offline</div>
           </div>
           <div class="head-btns">
-            <button class="hbtn" id="btnBot" onclick="toggleBot()" style="display:none">🤖 Bot</button>
-            <button class="hbtn" id="btnNotas" onclick="toggleNotas()">📝 Notas</button>
-            <button class="hbtn" id="btnLink" onclick="copiarLink()">🔗 Link</button>
+            <button class="hbtn" id="btnBot" onclick="toggleBot()" style="display:none" title="Bot">👤 <span class="lbl">Assumir</span></button>
+            <button class="hbtn" id="btnNotas" onclick="toggleNotas()" title="Notas">📝 <span class="lbl">Notas</span></button>
+            <button class="hbtn" id="btnLink" onclick="copiarLink()" title="Link">🔗 <span class="lbl">Link</span></button>
           </div>
         </div>
         <div id="msgs"></div>
@@ -850,27 +882,42 @@
     }
 
     async function loadList() {
-      const { data, error } = await sb.from('conversas').select('*').order('updated_at', { ascending: false });
-      if (error) { document.getElementById('lista').innerHTML = '<div class="vazio">Erro ao carregar</div>'; return; }
-      conversas = data || [];
+      const box = document.getElementById('lista');
+      if (box) box.innerHTML = '<div class="vazio">Carregando...</div>';
+      let res = await sb.from('conversas').select('*').order('updated_at', { ascending: false });
+      if (res.error) {
+        // tenta sem ordenação (caso a coluna updated_at falhe)
+        res = await sb.from('conversas').select('*');
+      }
+      if (res.error) {
+        console.error('loadList', res.error);
+        if (box) box.innerHTML = '<div class="vazio">Erro ao carregar:<br>' + esc(res.error.message) + '</div>';
+        toast('Erro ao carregar clientes: ' + res.error.message, true);
+        return;
+      }
+      conversas = res.data || [];
       render();
     }
 
     function render(f = '') {
       const box = document.getElementById('lista');
-      let list = f ? conversas.filter(c => c.nome.toLowerCase().includes(f.toLowerCase())) : conversas;
+      if (!box) return;
+      let list = conversas || [];
+      if (f) list = list.filter(c => (c.nome || '').toLowerCase().includes(f.toLowerCase()));
       if (!list.length) { box.innerHTML = '<div class="vazio">Nenhum cliente.<br>Clique em + Novo</div>'; return; }
       box.innerHTML = list.map(c => {
+        const nome = c.nome || 'Cliente';
         const on = c.last_seen_cliente && (Date.now() - new Date(c.last_seen_cliente).getTime() < 45000);
         const at = atual && atual.id === c.id ? 'ativo' : '';
-        return `<div class="item ${at}" onclick="openChat('${c.id}')">
-          <div class="av">${c.nome[0].toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
+        const sid = String(c.id || '').replace(/'/g, '');
+        return `<div class="item ${at}" onclick="openChat('${sid}')">
+          <div class="av">${nome.charAt(0).toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
           <div class="item-info">
-            <div class="item-nome">${esc(c.nome)}</div>
+            <div class="item-nome">${esc(nome)}</div>
             <div class="item-sub">${c.notas ? '📝 Tem anotações' : 'Toque para abrir'}</div>
           </div>
           <div class="item-hora">${fmt(c.updated_at)}</div>
-          <button class="btn-del" title="Excluir" onclick="excluirCliente('${c.id}', '${esc(c.nome).replace(/'/g, "\'")}', event)">🗑️</button>
+          <button class="btn-del" title="Excluir" onclick="excluirCliente('${sid}', this.dataset.nome, event)" data-nome="${esc(nome)}">🗑️</button>
         </div>`;
       }).join('');
     }
@@ -887,8 +934,17 @@
       const nome = document.getElementById('nomeInput').value.trim();
       if (!nome) return alert('Digite o nome');
       const id = Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
-      const { error } = await sb.from('conversas').insert([{ id, nome, notas: '' }]);
-      if (error) return alert(error.message);
+      let res = await sb.from('conversas').insert([{ id, nome, notas: '', updated_at: new Date().toISOString() }]);
+      if (res.error) {
+        // tenta o insert mínimo
+        res = await sb.from('conversas').insert([{ id, nome }]);
+      }
+      if (res.error) {
+        console.error('criar', res.error);
+        toast('Erro ao criar: ' + res.error.message, true);
+        alert('Erro ao criar: ' + res.error.message);
+        return;
+      }
       fecharModal();
       await loadList();
       openChat(id);
@@ -1240,10 +1296,10 @@ Se o cliente pedir atendente/humano, diga que já está chamando o suporte.`;
       if (!btn || isCli) return;
       btn.style.display = 'inline-block';
       if (atual && atual.atendente_assumiu) {
-        btn.textContent = '🤖 Reativar bot';
+        btn.innerHTML = '🤖 <span class="lbl">Bot</span>';
         btn.classList.add('on');
       } else {
-        btn.textContent = '👤 Assumir atendimento';
+        btn.innerHTML = '👤 <span class="lbl">Assumir</span>';
         btn.classList.remove('on');
       }
     }
