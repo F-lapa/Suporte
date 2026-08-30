@@ -791,87 +791,10 @@
     // ===== ATENDIMENTO PERSONALIZADO (edite aqui) =====
     const CONFIG = {
       nomeEmpresa: 'Suporte IPTV',
-      nomeBot: 'Suporte',
-      horario: '08:00 às 23:00, todos os dias',
-      menu:
-`Olá! Sou o suporte automático da *Suporte IPTV*.
-Escolha uma opção digitando o número:
-
-1 - Instalação do app
-2 - Atualizar lista / URL
-3 - Buffer / travando
-4 - Tela preta / sem imagem
-5 - Login e senha
-6 - Renovação / Pix
-7 - Falar com atendente
-
-Horário: 08:00 às 23:00`,
-      opcoes: {
-        '1': `📦 *Instalação*
-1) Instale o aplicativo que enviamos
-2) Abra o app
-3) Cole a lista/URL
-4) Salve e aguarde carregar
-
-Qual aparelho você usa?
-A - TV Box
-B - Celular
-C - Smart TV
-
-Digite A, B ou C, ou 0 para voltar ao menu.`,
-        '2': `🔗 *Lista / URL*
-Me diga o app que você usa:
-- IBO Player
-- Duo
-- Smart UP
-- Outro
-
-Depois eu te oriento onde colar a lista.
-Digite 0 para voltar ao menu.`,
-        '3': `📶 *Buffer / travando*
-Faça isto:
-1) Teste outro canal
-2) Reinicie o app
-3) Reinicie o aparelho
-4) Confira a internet
-
-Se continuar, me diga o nome do canal e o app.
-Digite 0 para o menu.`,
-        '4': `⬛ *Tela preta*
-Verifique:
-1) Internet funcionando?
-2) Lista atualizada?
-3) App reiniciado?
-
-Me diga o aparelho e o que aparece na tela.
-Digite 0 para o menu.`,
-        '5': `🔐 *Login e senha*
-- Digite usuário e senha sem espaço
-- Confira se o plano não venceu
-- Tente sair e entrar de novo
-
-Qual app está usando?
-Digite 0 para o menu.`,
-        '6': `💳 *Renovação*
-Me informe:
-- Seu nome
-- App que usa
-
-Um atendente confirma o valor e envia o Pix.
-Digite 0 para o menu.`,
-        '7': `👤 *Atendente humano*
-Certo! Já encaminhei para um atendente.
-Nosso horário é 08:00 às 23:00.
-Aguarde que alguém vai te responder.`,
-        '0': null,
-        'a': `TV Box: abra o app, vá em Add Playlist / URL, cole o link, salve e volte à lista de canais.
-Digite 0 para o menu.`,
-        'b': `Celular: instale o APK, abra, em Lista/URL cole o link enviado, salve e aguarde.
-Digite 0 para o menu.`,
-        'c': `Smart TV: abra o app, procure Add Playlist, cole a URL com o controle e salve.
-Digite 0 para o menu.`
-      }
+      nomeBot: 'Suporte'
     };
+    const botEstado = {};
+
 
 
     // ===== LOGIN ADMIN =====
@@ -1304,7 +1227,7 @@ Digite 0 para o menu.`
         if (box && !box.children.length) {
           await sb.from('mensagens').insert([{
             conversa_id: atual.id,
-            texto: CONFIG.menu,
+            texto: menuTexto(),
             remetente: 'agente',
             tipo: 'texto',
             lida: false
@@ -1518,20 +1441,92 @@ Digite 0 para o menu.`
       }
     }
 
-    function respostaLocal(texto) {
-      const t = (texto || '').trim().toLowerCase();
-      const soNumero = t.replace(/[^0-9a-z]/g, '');
-      if (soNumero === '0' || t === 'menu' || t === 'voltar') return CONFIG.menu;
-      if (CONFIG.opcoes[soNumero]) return CONFIG.opcoes[soNumero];
-      if (/humano|atendente|pessoa|operador/.test(t)) return CONFIG.opcoes['7'];
-      if (/renov|pag|pix|plano|venc/.test(t)) return CONFIG.opcoes['6'];
-      if (/instal|baix|apk|config/.test(t)) return CONFIG.opcoes['1'];
-      if (/buffer|trav|lento|carreg/.test(t)) return CONFIG.opcoes['3'];
-      if (/tela preta|n[aã]o abre|sem imagem|sem som/.test(t)) return CONFIG.opcoes['4'];
-      if (/login|senha|usu[aá]rio/.test(t)) return CONFIG.opcoes['5'];
-      if (/lista|url|dns|portal/.test(t)) return CONFIG.opcoes['2'];
-      if (/oi+|ol[aá]|bom dia|boa tarde|boa noite|eai|e aí|menu|op[cç]/.test(t)) return CONFIG.menu;
-      return CONFIG.menu + '\n\nNão entendi. Digite um número de 1 a 7.';
+
+    function menuTexto() {
+      return 'Olá! Sou o suporte IPTV.\n\nDigite o número:\n\n1  Instalação\n2  Lista / URL\n3  Canal travando\n4  Tela preta\n5  Login\n6  Renovação\n7  Falar com atendente\n\n0  Ver o menu de novo';
+    }
+
+    function detectarTema(t) {
+      t = (t || '').toLowerCase();
+      if (/^[0-7]$/.test(t.trim())) return t.trim();
+      if (/humano|atendente|pessoa|operador/.test(t)) return '7';
+      if (/renov|pag|pix|plano|venc/.test(t)) return '6';
+      if (/instal|baix|apk|config/.test(t)) return '1';
+      if (/lista|url|dns|portal|playlist/.test(t)) return '2';
+      if (/buffer|trav|lento|carreg/.test(t)) return '3';
+      if (/tela preta|sem imagem|sem som|n[aã]o abre/.test(t)) return '4';
+      if (/login|senha|usu[aá]rio/.test(t)) return '5';
+      if (/tv ?box|box/.test(t)) return 'box';
+      if (/celular|android|iphone/.test(t)) return 'cel';
+      if (/smart ?tv|tv samsung|lg|tcl/.test(t)) return 'tv';
+      if (/menu|voltar|in[ií]cio|^0$/.test(t)) return '0';
+      if (/oi+|ol[aá]|bom dia|boa tarde|boa noite/.test(t)) return 'oi';
+      return '';
+    }
+
+    function respostaTema(tema, texto, estado) {
+      const t = (texto || '').toLowerCase();
+      if (tema === '0' || tema === 'oi') {
+        botEstado[atual.id] = 'menu';
+        return menuTexto();
+      }
+      if (tema === '1') {
+        botEstado[atual.id] = 'instal';
+        return 'Vamos instalar.\n\nMe diga o aparelho:\n- TV Box\n- Celular\n- Smart TV\n\nAí eu te passo o passo a passo.';
+      }
+      if (tema === '2') {
+        botEstado[atual.id] = 'lista';
+        return 'Beleza. Qual app você usa para assistir? (IBO, Duo, Smart UP, outro)\n\nCom o nome do app eu te digo exatamente onde colar a lista.';
+      }
+      if (tema === '3') {
+        botEstado[atual.id] = 'buffer';
+        return 'Quando trava, faça nesta ordem:\n1) Troque de canal\n2) Feche o app e abra de novo\n3) Reinicie o aparelho\n\nDepois me diga se melhorou e qual canal estava assistindo.';
+      }
+      if (tema === '4') {
+        botEstado[atual.id] = 'preta';
+        return 'Tela preta: primeiro teste outro canal.\nSe vários canais estiverem pretos, o problema é lista ou login.\n\nEstá preto em todos os canais ou só em alguns?';
+      }
+      if (tema === '5') {
+        botEstado[atual.id] = 'login';
+        return 'No login, digite usuário e senha sem espaço.\nSe aparecer vencido ou inválido, precisa renovar.\n\nQual mensagem aparece quando você tenta entrar?';
+      }
+      if (tema === '6') {
+        botEstado[atual.id] = 'renov';
+        return 'Para renovar me mande:\n- Seu nome\n- App que usa\n\nUm atendente confirma o valor e envia o Pix.';
+      }
+      if (tema === '7') {
+        botEstado[atual.id] = 'humano';
+        return 'Ok, vou chamar um atendente.\nHorário: 08:00 às 23:00.\nPode ir descrevendo o problema enquanto isso.';
+      }
+      if (tema === 'box' || (estado === 'instal' && /box/.test(t))) {
+        botEstado[atual.id] = 'instal';
+        return 'TV Box:\n1) Abra o app\n2) Toque em adicionar lista ou URL\n3) Cole o link que enviamos\n4) Salve e espere carregar\n\nSe não achar essa opção, me diga o nome do app.';
+      }
+      if (tema === 'cel' || (estado === 'instal' && /celular|android|iphone/.test(t))) {
+        botEstado[atual.id] = 'instal';
+        return 'Celular:\n1) Instale o APK\n2) Abra o app\n3) Em lista/URL, cole o link\n4) Salve\n\nQual app você instalou?';
+      }
+      if (tema === 'tv' || (estado === 'instal' && /smart|samsung|lg/.test(t))) {
+        botEstado[atual.id] = 'instal';
+        return 'Smart TV:\n1) Abra o app na TV\n2) Procure Add Playlist / URL\n3) Cole a lista com o controle\n4) Salve\n\nQual marca da TV?';
+      }
+
+      // continua o assunto atual, sem repetir o menu
+      if (estado === 'instal') return 'Me confirma o aparelho: TV Box, celular ou Smart TV? Aí eu te passo só o passo que falta.';
+      if (estado === 'lista') return 'Me fala o nome do app que você usa. Sem o app eu não sei te dizer o lugar certo de colar a lista.';
+      if (estado === 'buffer') return 'Testou trocar de canal e reiniciar? Me diga o resultado e o nome do canal.';
+      if (estado === 'preta') return 'Está preto em todos os canais ou só em alguns? Isso muda o que vamos fazer.';
+      if (estado === 'login') return 'O que está escrito na tela quando tenta entrar? Copia a mensagem aqui.';
+      if (estado === 'renov') return 'Me manda o nome e o app para o atendente fechar a renovação.';
+      if (estado === 'humano') return 'Já encaminhei. Pode detalhar o problema que o atendente vê ao entrar.';
+      return menuTexto();
+    }
+
+    function respostaLocal(texto, historico) {
+      const t = (texto || '').trim();
+      const estado = (atual && botEstado[atual.id]) || 'menu';
+      const tema = detectarTema(t);
+      return respostaTema(tema, t, estado);
     }
 
     let botBusy = false;
@@ -1561,7 +1556,7 @@ Digite 0 para o menu.`
         }
 
         const ultima = [...historico].reverse().find(m => m.role === 'user');
-        const resposta = respostaLocal(ultima ? ultima.text : 'oi');
+        const resposta = respostaLocal(ultima ? ultima.text : 'oi', historico);
 
         botBusy = true;
         await sb.from('mensagens').insert([{
