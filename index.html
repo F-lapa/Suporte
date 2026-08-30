@@ -2002,27 +2002,39 @@
     }
 
     async function comprimirImagem(blob) {
-      return new Promise((resolve) => {
-        const url = URL.createObjectURL(blob);
-        const img = new Image();
-        img.onload = () => {
-          const max = 1080;
-          let w = img.width, h = img.height;
-          if (w > max || h > max) {
-            const s = Math.min(max/w, max/h);
-            w = Math.round(w*s); h = Math.round(h*s);
-          }
-          const cv = document.createElement('canvas');
-          cv.width = w; cv.height = h;
-          const ctx = cv.getContext('2d');
-          ctx.imageSmoothingEnabled = true;
-          ctx.drawImage(img, 0, 0, w, h);
-          URL.revokeObjectURL(url);
-          cv.toBlob(b => resolve(b || blob), 'image/jpeg', 0.86);
-        };
-        img.onerror = () => { URL.revokeObjectURL(url); resolve(blob); };
-        img.src = url;
-      });
+      if (!blob) return blob;
+      if (blob.size && blob.size < 1800000) return blob;
+      try {
+        let bmp = null;
+        if (typeof createImageBitmap === 'function') {
+          try { bmp = await createImageBitmap(blob); } catch(e) {}
+        }
+        const drawSrc = bmp;
+        if (!drawSrc) return blob;
+        const max = 1280;
+        let w = drawSrc.width, h = drawSrc.height;
+        if (!w || !h) { if (bmp) bmp.close(); return blob; }
+        if (w > max || h > max) {
+          const s = Math.min(max/w, max/h);
+          w = Math.round(w*s); h = Math.round(h*s);
+        }
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d', { alpha: false });
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0,0,w,h);
+        ctx.drawImage(drawSrc, 0, 0, w, h);
+        if (bmp) bmp.close();
+        const sample = ctx.getImageData(Math.floor(w/4), Math.floor(h/4), Math.min(40,w), Math.min(40,h)).data;
+        let soma = 0, n = 0;
+        for (let i = 0; i < sample.length; i += 4) { soma += sample[i]+sample[i+1]+sample[i+2]; n++; }
+        if (n && (soma/n) < 12) return blob;
+        const out = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.9));
+        if (!out || out.size < 2000) return blob;
+        return out;
+      } catch(e) {
+        return blob;
+      }
     }
 
     async function analisarMidia(url, tipo, arquivo) {
@@ -2222,9 +2234,10 @@
         }
         let up = file, ctF = ct;
         if (tipo === 'imagem') {
-          toastEl.textContent = 'Otimizando foto...';
-          up = await comprimirImagem(file);
-          ctF = 'image/jpeg';
+          toastEl.textContent = 'Enviando foto...';
+          const opt = await comprimirImagem(file);
+          if (opt && opt !== file) { up = opt; ctF = 'image/jpeg'; }
+          else { up = file; ctF = file.type || 'image/jpeg'; }
         } else if (tipo === 'video') {
           toastEl.textContent = 'Comprimindo vídeo...';
           try {
@@ -2235,7 +2248,7 @@
             up = file;
           }
         }
-        const ext2 = tipo === 'imagem' ? 'jpg' : (tipo === 'video' ? 'webm' : ext);
+        const ext2 = tipo === 'imagem' ? ((ctF||'').includes('png') ? 'png' : (ctF||'').includes('webp') ? 'webp' : 'jpg') : (tipo === 'video' ? 'webm' : ext);
         let nome = atual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext2;
         let nomeF = nome;
         const from = isCli ? 'cliente' : 'agente';

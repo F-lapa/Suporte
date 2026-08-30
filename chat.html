@@ -1706,7 +1706,13 @@
     function extOf(file, tipo) {
       const n = (file.name || '').toLowerCase();
       const t = (file.type || '').toLowerCase();
-      if (tipo === 'imagem') return 'jpg';
+      if (tipo === 'imagem') {
+        if (n.endsWith('.png') || t.includes('png')) return 'png';
+        if (n.endsWith('.webp') || t.includes('webp')) return 'webp';
+        if (n.endsWith('.gif') || t.includes('gif')) return 'gif';
+        if (n.endsWith('.heic') || t.includes('heic')) return 'heic';
+        return 'jpg';
+      }
       if (n.includes('.')) return n.split('.').pop().replace(/[^a-z0-9]/g,'').slice(0,5) || 'bin';
       if (t.includes('mp4') || t.includes('m4v')) return 'mp4';
       if (t.includes('quicktime') || t.includes('mov')) return 'mov';
@@ -1783,9 +1789,15 @@
 
         let up = file, ctF = mime || 'application/octet-stream';
         if (tipo === 'imagem') {
-          toastEl.textContent = 'Otimizando...';
-          up = await comprimirImagem(file);
-          ctF = 'image/jpeg';
+          toastEl.textContent = 'Enviando foto...';
+          up = file;
+          if (ctF.includes('png')) ctF = 'image/png';
+          else if (ctF.includes('webp')) ctF = 'image/webp';
+          else if (ctF.includes('gif')) ctF = 'image/gif';
+          else if (!ctF || ctF === 'application/octet-stream') {
+            const n = (file.name || '').toLowerCase();
+            ctF = n.endsWith('.png') ? 'image/png' : n.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+          }
         } else if (tipo === 'video') {
           toastEl.textContent = 'Enviando vídeo...';
           if (!ctF || ctF === 'application/octet-stream') ctF = 'video/mp4';
