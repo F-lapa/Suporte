@@ -555,6 +555,7 @@
       -webkit-touch-callout: none !important;
     }
     body.cli img, body.cli video { -webkit-user-drag: none; }
+    body.cli #btnMinhaFoto { display: flex !important; }
     body.cli #inp, body.cli input {
       -webkit-user-select: text !important; user-select: text !important;
       pointer-events: auto !important;
@@ -790,6 +791,7 @@
         </div>
         <div id="msgs"></div>
         <div class="composer">
+          <button class="mbtn" id="btnMinhaFoto" onclick="escolherFotoPerfil()" title="Minha foto" style="color:#f472b6">👤</button>
           <button class="mbtn foto" onclick="pick('imagem')" title="Foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4V8z"/><circle cx="12" cy="13" r="3.2"/></svg></button>
           <button class="mbtn video" onclick="pick('video')" title="Vídeo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z" fill="currentColor" stroke="none"/></svg></button>
           <button class="mbtn file" onclick="pick('arquivo')" title="Arquivo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></button>
@@ -815,6 +817,7 @@
         <div id="vencInfo" style="font-size:12px;color:var(--text2)"></div>
         <label>Só você vê estas anotações</label>
         <textarea id="notasTxt" placeholder="Observações sobre o contato..."></textarea>
+        <button class="btn-save" type="button" onclick="escolherFotoPerfil()" style="background:#db2777">Trocar foto do contato</button>
         <button class="btn-save" onclick="saveNotas()">Salvar cadastro</button>
         <button class="btn-save" style="background:#25d366;margin-top:8px" onclick="abrirWhatsAppCobranca()">Cobrar no WhatsApp</button>
       </div>
@@ -901,14 +904,87 @@
     // ===== ATENDIMENTO PERSONALIZADO (edite aqui) =====
     const CONFIG = {
       nomeEmpresa: 'Chat',
-      nomeBot: 'ADM',
+      nomeBot: 'Lauren',
       chavePix: '48988286005',
       nomePix: 'Fernando Lapa',
       zapCobranca: '5548988286005'
     };
     const botEstado = {};
+    let envioPerfil = false;
 
-
+    function pathFotoCliente(id) { return id + '/perfil.jpg'; }
+    function urlFotoCliente(id) {
+      if (!id) return '';
+      const { data } = sb.storage.from('midias').getPublicUrl(pathFotoCliente(id));
+      const u = (data && data.publicUrl) || '';
+      return u ? u + '?t=' + Date.now() : '';
+    }
+    function fotoSalva(c) {
+      if (!c) return '';
+      if (c.foto_cliente) return c.foto_cliente;
+      const n = c.notas || '';
+      const m = n.match(/\[\[FOTO:(.*?)\]\]/);
+      return m ? m[1] : '';
+    }
+    function htmlAvCliente(id, letra, on, conv) {
+      const src = fotoSalva(conv) || urlFotoCliente(id);
+      const dot = on ? '<span class="dot"></span>' : '';
+      const L = (letra || '?').replace(/'/g, '');
+      return '<img src="'+src+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.replaceWith(document.createTextNode(\''+L+'\'))">'+dot;
+    }
+    function aplicarFotoClienteNoAv(el, id, letra, conv) {
+      if (!el) return;
+      const src = fotoSalva(conv) || urlFotoCliente(id);
+      el.textContent = '';
+      el.style.overflow = 'hidden';
+      el.innerHTML = '<img src="'+src+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">';
+      const img = el.querySelector('img');
+      if (img) {
+        img.onerror = function() { el.textContent = letra || '?'; };
+      }
+    }
+    function escolherFotoPerfil() {
+      if (!atual) return toast('Abra a conversa', true);
+      envioPerfil = true;
+      const i = document.getElementById('fileInput');
+      if (!i) return toast('Seletor indisponível', true);
+      i.accept = 'image/*';
+      i.value = '';
+      i.click();
+    }
+    async function salvarFotoPerfil(file) {
+      if (!atual || !file) return;
+      const toastEl = document.createElement('div'); toastEl.className = 'uploading'; toastEl.textContent = 'Salvando foto...';
+      document.body.appendChild(toastEl);
+      try {
+        const path = pathFotoCliente(atual.id);
+        let err = (await sb.storage.from('midias').upload(path, file, {
+          cacheControl: '60', upsert: true, contentType: file.type || 'image/jpeg'
+        })).error;
+        if (err) {
+          err = (await sb.storage.from('midias').upload(path, file, {
+            cacheControl: '60', upsert: true, contentType: 'application/octet-stream'
+          })).error;
+        }
+        if (err) throw err;
+        const { data: ud } = sb.storage.from('midias').getPublicUrl(path);
+        const pub = (ud && ud.publicUrl ? ud.publicUrl : urlFotoCliente(atual.id)) + '?t=' + Date.now();
+        atual.foto_cliente = pub;
+        const notasLimpas = (atual.notas || '').replace(/\[\[FOTO:.*?\]\]\s*/g, '');
+        atual.notas = '[[FOTO:' + pub + ']]\n' + notasLimpas;
+        await sb.from('conversas').update({ notas: atual.notas }).eq('id', atual.id);
+        const ntxt = document.getElementById('notasTxt');
+        if (ntxt) ntxt.value = notasLimpas;
+        toast('Foto de perfil salva');
+        aplicarFotoClienteNoAv(document.getElementById('av'), atual.id, (atual.nome||'?')[0], atual);
+        if (!isCli) render(document.getElementById('busca')?.value || '');
+      } catch (e) {
+        console.error(e);
+        toast((e && e.message) || 'Não foi possível salvar a foto', true);
+      } finally {
+        toastEl.remove();
+      }
+    }
 
     // ===== LOGIN ADMIN =====
     // Altere a senha aqui se quiser:
@@ -1271,7 +1347,7 @@
         const at = atual && atual.id === c.id ? 'ativo' : '';
         const sid = String(c.id || '').replace(/'/g, '');
         return `<div class="item ${at}" onclick="openChat('${sid}')">
-          <div class="av">${nome.charAt(0).toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
+          <div class="av" style="overflow:hidden">${htmlAvCliente(sid, nome.charAt(0).toUpperCase(), on, c)}</div>
           <div class="item-info">
             <div class="item-nome">${esc(nome)}</div>
             <div class="item-sub">${subCliente(c)}</div>
@@ -1329,7 +1405,7 @@
         atual = data;
       } else atual = c;
       showChat();
-      document.getElementById('notasTxt').value = atual.notas || '';
+      document.getElementById('notasTxt').value = (atual.notas || '').replace(/\[\[FOTO:.*?\]\]\s*/g,'');
       const zap = document.getElementById('zapTxt'); if (zap) zap.value = atual.whatsapp || '';
       const venc = document.getElementById('vencTxt'); if (venc) venc.value = (atual.vencimento || '').toString().slice(0,10);
       atualizarVencInfo(atual);
@@ -1398,9 +1474,15 @@
         if (backBtn) backBtn.style.display = 'none';
       } else {
         nomeEl.textContent = atual.nome;
-        avEl.textContent = atual.nome[0].toUpperCase();
         avEl.style.backgroundImage = '';
         avEl.style.backgroundColor = '';
+        avEl.style.cursor = 'pointer';
+        avEl.title = 'Trocar foto do contato';
+        aplicarFotoClienteNoAv(avEl, atual.id, (atual.nome||'?')[0].toUpperCase(), atual);
+        avEl.onclick = function() {
+          if (!confirm('Trocar a foto de perfil deste contato?')) return;
+          escolherFotoPerfil();
+        };
       }
 
       document.getElementById('app').classList.add('open');
@@ -1408,6 +1490,10 @@
       const seen = isCli ? atual.last_seen_agente : atual.last_seen_cliente;
       setStatus(seen);
       if (!isCli) updateBotBtn();
+      const bf = document.getElementById('btnMinhaFoto');
+      if (bf) bf.style.display = isCli ? 'flex' : 'none';
+      const bt = document.getElementById('btnFotoPerfilTxt');
+      if (bt) bt.style.display = isCli ? 'inline-flex' : 'none';
       garantirCanalChamada();
       setTimeout(() => document.getElementById('inp')?.focus(), 150);
     }
@@ -1460,7 +1546,9 @@
 
     async function saveNotas() {
       if (!atual || isCli) return;
-      const notas = document.getElementById('notasTxt').value;
+      const fotoMark = ((atual.notas||'').match(/\[\[FOTO:.*?\]\]/)||[])[0] || '';
+      let notas = document.getElementById('notasTxt').value;
+      if (fotoMark && notas.indexOf('[[FOTO:') < 0) notas = fotoMark + "\n" + notas;
       const whatsapp = (document.getElementById('zapTxt').value || '').replace(/\D/g,'');
       const vencimento = document.getElementById('vencTxt').value || null;
       const payload = { notas, whatsapp, vencimento };
@@ -1864,6 +1952,13 @@
       const file = ev.target.files && ev.target.files[0];
       ev.target.value = '';
       if (!file || !atual) return;
+      if (envioPerfil) {
+        envioPerfil = false;
+        if (!(file.type||'').startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(file.name||''))
+          return toast('Escolha uma foto', true);
+        await salvarFotoPerfil(file);
+        return;
+      }
       if (file.size > 200 * 1024 * 1024) return toast('Vídeo grande demais (máx 200MB)', true);
       const toastEl = document.createElement('div'); toastEl.className = 'uploading'; toastEl.textContent = 'Enviando...';
       document.body.appendChild(toastEl);

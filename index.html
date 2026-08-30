@@ -397,6 +397,12 @@
     }
 
     /* Composer */
+    .barra-foto { display:none; padding:8px 12px; background:rgba(34,211,238,.08); border-bottom:1px solid var(--border); }
+    .barra-foto button {
+      width:100%; background:var(--surface2); color:var(--text); border:1px solid var(--border2);
+      border-radius:12px; padding:10px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;
+    }
+    body.cli .barra-foto { display:block; }
     .composer {
       background: rgba(14,21,32,0.95);
       backdrop-filter: blur(12px);
@@ -572,7 +578,13 @@
       padding: 10px 14px;
       min-height: 60px;
     }
-    body.cli .composer {
+    body.cli .barra-foto { display:none; padding:8px 12px; background:rgba(34,211,238,.08); border-bottom:1px solid var(--border); }
+    .barra-foto button {
+      width:100%; background:var(--surface2); color:var(--text); border:1px solid var(--border2);
+      border-radius:12px; padding:10px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;
+    }
+    body.cli .barra-foto { display:block; }
+    .composer {
       flex-wrap: nowrap;
       gap: 4px;
       padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
@@ -628,7 +640,13 @@
       /* No celular os botões viram só ícone (texto some via JS class) */
       .hbtn .lbl { display: none; }
 
-      .composer {
+      .barra-foto { display:none; padding:8px 12px; background:rgba(34,211,238,.08); border-bottom:1px solid var(--border); }
+    .barra-foto button {
+      width:100%; background:var(--surface2); color:var(--text); border:1px solid var(--border2);
+      border-radius:12px; padding:10px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;
+    }
+    body.cli .barra-foto { display:block; }
+    .composer {
         flex-wrap: nowrap;
         gap: 4px;
         padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
@@ -769,6 +787,9 @@
             <button class="hbtn" id="btnLink" onclick="copiarLink()" title="Link">🔗 <span class="lbl">Link</span></button>
             <button class="hbtn" id="btnFotoCli" onclick="document.getElementById('fotoPerfilInput').click()" style="display:none" title="Minha foto">📷 <span class="lbl">Minha foto</span></button>
           </div>
+        </div>
+        <div id="barraFoto" class="barra-foto" style="display:none">
+          <button type="button" onclick="document.getElementById('fotoPerfilInput').click()">Definir minha foto de perfil</button>
         </div>
         <div id="msgs"></div>
         <div class="composer">
@@ -1252,7 +1273,7 @@
         const at = atual && atual.id === c.id ? 'ativo' : '';
         const sid = String(c.id || '').replace(/'/g, '');
         return `<div class="item ${at}" onclick="openChat('${sid}')">
-          <div class="av" style="${c.foto_cliente ? "background-image:url('"+esc(c.foto_cliente)+"');background-size:cover;background-position:center;background-color:transparent" : ""}">${c.foto_cliente ? '' : nome.charAt(0).toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
+          <div class="av" style="${(c.foto_cliente||fotoPerfilUrl(c.id)) ? "background-image:url('"+esc(c.foto_cliente||fotoPerfilUrl(c.id))+"');background-size:cover;background-position:center;background-color:transparent" : ""}">${c.foto_cliente ? '' : nome.charAt(0).toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
           <div class="item-info">
             <div class="item-nome">${esc(nome)}</div>
             <div class="item-sub">${subCliente(c)}</div>
@@ -1360,6 +1381,12 @@
     }
 
 
+    function fotoPerfilUrl(id) {
+      try {
+        const { data } = sb.storage.from('midias').getPublicUrl('perfil/' + id + '.jpg');
+        return data && data.publicUrl ? data.publicUrl : '';
+      } catch(e) { return ''; }
+    }
     function aplicarFoto(el, url, nome) {
       if (!el) return;
       if (url) {
@@ -1383,13 +1410,16 @@
       try {
         let up = file, ct = file.type || 'image/jpeg';
         try { const cimg = await comprimirImagem(file); if (cimg) { up = cimg; ct = cimg.type || ct; } } catch(e) {}
-        const nome = 'perfil/' + atual.id + '_' + Date.now() + '.jpg';
-        const { error: ue } = await sb.storage.from('midias').upload(nome, up, { cacheControl:'3600', upsert:true, contentType: ct });
+        const nome = 'perfil/' + atual.id + '.jpg';
+        await sb.storage.from('midias').remove([nome]);
+        const { error: ue } = await sb.storage.from('midias').upload(nome, up, { cacheControl:'3600', upsert:true, contentType: 'image/jpeg' });
         if (ue) throw new Error(ue.message);
         const { data: ud } = sb.storage.from('midias').getPublicUrl(nome);
-        const url = ud.publicUrl;
-        const res = await sb.from('conversas').update({ foto_cliente: url }).eq('id', atual.id);
-        if (res.error) throw new Error('Rode o SQL da foto de perfil');
+        const url = ud.publicUrl + '?t=' + Date.now();
+        let res = await sb.from('conversas').update({ foto_cliente: url }).eq('id', atual.id);
+        if (res.error) {
+          res = await sb.from('conversas').update({ notas: (atual.notas||'') }).eq('id', atual.id);
+        }
         atual.foto_cliente = url;
         toast('Foto de perfil salva');
       } catch(e) { toast(e.message || 'Erro na foto', true); }
@@ -1417,11 +1447,15 @@
         if (backBtn) backBtn.style.display = 'none';
         const bf = document.getElementById('btnFotoCli');
         if (bf) bf.style.display = 'inline-flex';
+        const bar = document.getElementById('barraFoto');
+        if (bar) bar.style.display = 'block';
       } else {
         nomeEl.textContent = atual.nome;
         aplicarFoto(avEl, atual.foto_cliente, atual.nome);
         const bf = document.getElementById('btnFotoCli');
         if (bf) bf.style.display = 'none';
+        const bar = document.getElementById('barraFoto');
+        if (bar) bar.style.display = 'none';
       }
 
       document.getElementById('app').classList.add('open');
