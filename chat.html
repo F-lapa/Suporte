@@ -358,6 +358,7 @@
 
     /* Notas */
     .notas {
+      display: none !important;
       width: 320px; background: var(--surface);
       border-left: 1px solid var(--border);
       display: none; flex-direction: column; flex-shrink: 0;
@@ -616,7 +617,8 @@
     @media (max-width: 800px) {
       .sidebar { width: 100%; }
       .chat { display: none; }
-      .notas { display: none !important; position: fixed; inset: 0; width: 100%; z-index: 50; }
+      .notas { display: none !important; }
+    .notas-off { display: none !important; position: fixed; inset: 0; width: 100%; z-index: 50; }
       .notas.open { display: flex !important; }
       .app.open .sidebar { display: none; }
       .app.open .chat { display: flex; width: 100%; min-width: 0; }
@@ -758,11 +760,7 @@
       <div class="search-wrap">
         <input type="text" id="busca" placeholder="Buscar..." oninput="filtrar()">
       </div>
-      <div style="padding:0 14px 8px;display:flex;gap:8px">
-        <button class="hbtn" onclick="filtrarVenc('hoje')">Vencem hoje</button>
-        <button class="hbtn" onclick="filtrarVenc('atraso')">Em atraso</button>
-        <button class="hbtn" onclick="filtrarVenc('')">Todos</button>
-      </div>
+      <!-- filtros de vencimento removidos -->
       <div class="lista" id="lista"><div class="vazio">Carregando...</div></div>
     </div>
 
@@ -782,7 +780,7 @@
             <div class="status" id="status">Offline</div>
           </div>
           <div class="head-btns">
-            <button class="hbtn" id="btnNotas" onclick="toggleNotas()" title="Notas">📝 <span class="lbl">Notas</span></button>
+            <button class="hbtn" id="btnNotas" onclick="toggleNotas()" title="Notas" style="display:none">📝</button>
             <button class="hbtn" id="btnCall" onclick="iniciarChamada()" title="Chamada">📹 <span class="lbl">Chamada</span></button>
             <button class="hbtn" id="btnCobrar" onclick="abrirWhatsAppCobranca()" title="Cobrança">💰 <span class="lbl">Cobrança</span></button>
             <button class="hbtn" id="btnRenovar" onclick="marcarRenovado()" title="Renovado">✅ <span class="lbl">Renovado</span></button>
@@ -1287,6 +1285,8 @@
         err.style.display = 'none';
         loadList();
         toast('Bem-vindo, ' + ADMIN_USER);
+        setTimeout(pedirNotificacao, 400);
+        setTimeout(iniciarNotificacoes, 800);
       } else {
         err.style.display = 'block';
       }
@@ -1648,19 +1648,72 @@
         .eq('conversa_id', atual.id).eq('remetente', deQuem).eq('lida', false);
     }
 
+    let chNotify = null;
+    function beepNotify() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = 880;
+        g.gain.value = 0.08;
+        o.connect(g); g.connect(ctx.destination);
+        o.start();
+        setTimeout(() => { o.stop(); ctx.close(); }, 180);
+      } catch(e) {}
+      try { navigator.vibrate && navigator.vibrate([120, 60, 120]); } catch(e) {}
+    }
+    function pedirNotificacao() {
+      try {
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'default') Notification.requestPermission();
+      } catch(e) {}
+    }
+    function avisarMsg(titulo, corpo) {
+      beepNotify();
+      try {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          const n = new Notification(titulo, { body: corpo || 'Nova mensagem', tag: 'chat-msg', renotify: true });
+          n.onclick = () => { try { window.focus(); } catch(e) {} n.close(); };
+        }
+      } catch(e) {}
+      const tit = document.title;
+      document.title = '● ' + titulo;
+      setTimeout(() => { if (document.title.startsWith('● ')) document.title = tit; }, 4000);
+    }
+    function iniciarNotificacoes() {
+      pedirNotificacao();
+      if (chNotify) try { sb.removeChannel(chNotify); } catch(e) {}
+      const filtro = isCli && atual ? { event:'INSERT', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id }
+                                   : { event:'INSERT', schema:'public', table:'mensagens' };
+      chNotify = sb.channel('n-' + (isCli && atual ? atual.id : 'adm'))
+        .on('postgres_changes', filtro, p => {
+          const m = p.new || {};
+          const meu = isCli ? 'cliente' : 'agente';
+          const outro = isCli ? 'agente' : 'cliente';
+          if (m.remetente !== outro) return;
+          const vendoEsta = atual && atual.id === m.conversa_id && !document.hidden;
+          if (vendoEsta) return;
+          const nome = isCli ? (CONFIG.nomeBot || 'Lauren') : ((conversas.find(c => c.id === m.conversa_id)||{}).nome || 'Cliente');
+          const tipo = (m.tipo||'texto');
+          const corpo = tipo === 'imagem' ? 'Enviou uma foto' : tipo === 'video' ? 'Enviou um vídeo' : tipo === 'audio' ? 'Enviou um áudio' : 'Nova mensagem';
+          avisarMsg(nome, corpo);
+        })
+        .subscribe();
+    }
+
     function listen() {
       if (channel) sb.removeChannel(channel);
       if (!atual) return;
+      iniciarNotificacoes();
       channel = sb.channel('c-' + atual.id)
         .on('postgres_changes', { event:'INSERT', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
           async p => {
             await addMsg(p.new); scroll();
-            // Se recebi mensagem do outro, marco como lida
             const outro = isCli ? 'agente' : 'cliente';
             if (p.new.remetente === outro) {
               await sb.from('mensagens').update({ lida: true }).eq('id', p.new.id);
+              if (document.hidden) avisarMsg(isCli ? (CONFIG.nomeBot||'Lauren') : (atual.nome||'Cliente'), 'Nova mensagem');
             }
-            // bot só dispara no aparelho que enviou, pra não duplicar
           })
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
           p => {
