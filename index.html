@@ -394,15 +394,23 @@
       border-top: 1px solid var(--border); flex-shrink: 0;
     }
     .mbtn {
-      background: var(--surface2); border: 1px solid transparent;
-      color: var(--text2); width: 40px; height: 40px; border-radius: 12px;
-      font-size: 17px; cursor: pointer; display: flex;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text2); width: 40px; height: 40px; border-radius: 14px;
+      cursor: pointer; display: flex;
       align-items: center; justify-content: center;
-      transition: all 0.12s; flex-shrink: 0;
+      transition: transform 0.12s, background 0.12s, border-color 0.12s;
+      flex-shrink: 0;
     }
+    .mbtn svg { width: 18px; height: 18px; display: block; }
+    .mbtn.foto { color: #38bdf8; }
+    .mbtn.video { color: #a78bfa; }
+    .mbtn.file { color: #94a3b8; }
+    .mbtn.mic { color: #34d399; }
+    .mbtn.audio { color: #f59e0b; }
     .mbtn:hover {
-      color: var(--primary); background: var(--surface3);
-      border-color: var(--border);
+      background: var(--surface3);
+      border-color: currentColor;
+      transform: translateY(-1px);
     }
     .mbtn.rec {
       color: white; background: var(--danger);
@@ -738,11 +746,11 @@
         </div>
         <div id="msgs"></div>
         <div class="composer">
-          <button class="mbtn" onclick="pick('imagem')" title="Foto">📷</button>
-          <button class="mbtn" onclick="pick('video')" title="Vídeo">🎬</button>
-          <button class="mbtn" onclick="pick('arquivo')" title="Arquivo">📎</button>
-          <button class="mbtn" id="btnMic" onclick="toggleRec()" title="Gravar">🎤</button>
-          <button class="mbtn" onclick="pick('audio')" title="Áudio">🎵</button>
+          <button class="mbtn foto" onclick="pick('imagem')" title="Foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4V8z"/><circle cx="12" cy="13" r="3.2"/></svg></button>
+          <button class="mbtn video" onclick="pick('video')" title="Vídeo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z" fill="currentColor" stroke="none"/></svg></button>
+          <button class="mbtn file" onclick="pick('arquivo')" title="Arquivo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></button>
+          <button class="mbtn mic" id="btnMic" onclick="toggleRec()" title="Gravar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg></button>
+          <button class="mbtn audio" onclick="pick('audio')" title="Áudio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l12-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></button>
           <input type="file" id="fileInput" onchange="sendFile(event)">
           <input type="text" id="inp" placeholder="Digite uma mensagem..." autocomplete="off">
           <button id="send" onclick="sendMsg()" title="Enviar">➤</button>
@@ -2073,10 +2081,16 @@
         if (tipo === 'audio' && (!ct || ct === 'application/octet-stream')) {
           ct = ext === 'mp3' ? 'audio/mpeg' : ext === 'm4a' ? 'audio/mp4' : 'audio/webm';
         }
-        let nome = atual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
-        let up = file, ctF = ct, nomeF = nome;
+        let up = file, ctF = ct;
+        if (tipo === 'imagem') {
+          toastEl.textContent = 'Otimizando foto...';
+          up = await comprimirImagem(file);
+          ctF = 'image/jpeg';
+        }
+        const ext2 = tipo === 'imagem' ? 'jpg' : ext;
+        let nome = atual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext2;
+        let nomeF = nome;
         const from = isCli ? 'cliente' : 'agente';
-        if (from === 'agente') { up = await encBlob(file, atual.id); ctF = 'application/octet-stream'; nomeF = nome + '.enc'; }
         const { error: ue } = await sb.storage.from('midias').upload(nomeF, up, { cacheControl:'3600', upsert:false, contentType:ctF });
         if (ue) throw new Error(ue.message);
         const { data: ud } = sb.storage.from('midias').getPublicUrl(nomeF);
@@ -2117,7 +2131,7 @@
         };
         recorder.start(200); recording = true;
         const b = document.getElementById('btnMic');
-        if (b) { b.classList.add('rec'); b.textContent = '⏹'; }
+        if (b) b.classList.add('rec');
         toast('🔴 Gravando — toque de novo');
       } catch(e) {
         if (e.name === 'NotAllowedError') toast('Microfone negado', true);
@@ -2128,7 +2142,7 @@
       if (recorder && recording) {
         recorder.stop(); recording = false;
         const b = document.getElementById('btnMic');
-        if (b) { b.classList.remove('rec'); b.textContent = '🎤'; }
+        if (b) b.classList.remove('rec');
       }
     }
     async function sendAudio(blob, mime) {
