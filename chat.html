@@ -1671,7 +1671,9 @@
     function avisarMsg(titulo, corpo) {
       beepNotify();
       try {
-        if ('Notification' in window && Notification.permission === 'granted') {
+        if (window.AndroidChat && AndroidChat.notify) {
+          AndroidChat.notify(String(titulo||'Chat'), String(corpo||'Nova mensagem'));
+        } else if ('Notification' in window && Notification.permission === 'granted') {
           const n = new Notification(titulo, { body: corpo || 'Nova mensagem', tag: 'chat-msg', renotify: true });
           n.onclick = () => { try { window.focus(); } catch(e) {} n.close(); };
         }
