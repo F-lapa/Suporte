@@ -2,8 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Atendimento Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Suporte IPTV</title>
+  <meta name="theme-color" content="#0e1520">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="suporte-avatar.png">
+  <link rel="icon" href="suporte-avatar.png">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1204,6 +1211,18 @@
       startHB();
       startStatus();
       markRead('agente');
+      setTimeout(async () => {
+        const box = document.getElementById('msgs');
+        if (box && !box.children.length) {
+          await sb.from('mensagens').insert([{
+            conversa_id: atual.id,
+            texto: 'Olá! Bem-vindo ao suporte IPTV. Sou o assistente automático. Como posso ajudar? Instalação, lista, buffer, tela preta, login ou renovação.',
+            remetente: 'agente',
+            tipo: 'texto',
+            lida: false
+          }]);
+        }
+      }, 150);
     }
 
     function showChat() {
@@ -1291,6 +1310,9 @@
             const outro = isCli ? 'agente' : 'cliente';
             if (p.new.remetente === outro) {
               await sb.from('mensagens').update({ lida: true }).eq('id', p.new.id);
+            }
+            if (p.new.remetente === 'cliente') {
+              chamarBot();
             }
           })
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
@@ -1408,13 +1430,37 @@
       }
     }
 
+    function respostaLocal(texto) {
+      const t = (texto || '').toLowerCase();
+      if (/humano|atendente|pessoa|falar com (alguem|alguém)|operador/.test(t))
+        return 'Certo! Já estou chamando um atendente humano. Aguarde um momento, por favor.';
+      if (/renov|pag|pix|pre[cç]o|plano|venc/.test(t))
+        return 'Para renovação ou pagamento, me informe seu nome e o app que usa. Um atendente confirma o valor e te envia o Pix.';
+      if (/instal|baix|apk|aplicativo|config/.test(t))
+        return 'Para instalar: baixe o app que enviamos, abra, cole a lista/URL e salve. Qual aparelho você usa (TV Box, celular ou Smart TV)?';
+      if (/buffer|trav|lento|carreg/.test(t))
+        return 'Buffer costuma ser internet ou servidor. Teste outro canal, reinicie o app e o aparelho. Se continuar, me diga o nome do canal e o app.';
+      if (/tela preta|n[aã]o abre|sem imagem|sem som|n[aã]o funciona/.test(t))
+        return 'Vamos checar: 1) internet ok? 2) lista atualizada? 3) app reiniciado? Me diga o que aparece na tela e o modelo do aparelho.';
+      if (/login|senha|usu[aá]rio|entrar/.test(t))
+        return 'Se não entra, confira usuário e senha sem espaço. Se estiver vencido, peça renovação. Qual app está usando?';
+      if (/lista|url|dns|portal/.test(t))
+        return 'Posso te orientar a atualizar a lista. Me diga o app (IBO Player, Duo, Smart UP, etc.) que envio o passo a passo.';
+      if (/oi+|ol[aá]|bom dia|boa tarde|boa noite|eai|e aí/.test(t))
+        return 'Olá! Sou o suporte automático IPTV. Pode falar qual é o problema: instalação, buffer, tela preta, login ou renovação.';
+      return 'Entendi. Sou o suporte automático. Descreva o problema com mais detalhe (app, aparelho e o que aparece na tela) que eu te oriento. Se preferir, peça um atendente humano.';
+    }
+
+    let botBusy = false;
     async function chamarBot() {
-      if (!atual || !isCli) return;
-      // Recarrega flags
+      if (!atual || botBusy) return;
       const { data: conv } = await sb.from('conversas').select('bot_ativo, atendente_assumiu').eq('id', atual.id).single();
-      if (!conv || conv.atendente_assumiu || conv.bot_ativo === false) return;
+      if (conv && (conv.atendente_assumiu === true || conv.bot_ativo === false)) return;
 
       try {
+        const { data: lastRows } = await sb.from('mensagens').select('remetente, tipo, texto, created_at')
+          .eq('conversa_id', atual.id).order('created_at', { ascending: false }).limit(1);
+        if (lastRows && lastRows[0] && lastRows[0].remetente === 'agente') return;
         // Histórico recente
         const { data: msgs } = await sb.from('mensagens').select('texto, remetente, tipo')
           .eq('conversa_id', atual.id).eq('tipo', 'texto')
@@ -1431,83 +1477,18 @@
           });
         }
 
-        if (!GEMINI_KEY || GEMINI_KEY === 'COLE_SUA_CHAVE_AQUI') {
-          toast('Configure a chave GEMINI_KEY no index.html', true);
-          return;
-        }
+        const ultima = [...historico].reverse().find(m => m.role === 'user');
+        const resposta = respostaLocal(ultima ? ultima.text : 'oi');
 
-        const systemPrompt = `Você é o assistente de suporte IPTV da empresa.
-Fale sempre em português do Brasil, de forma clara, educada e objetiva.
-Ajude com: instalação, buffer, tela preta, login, lista, renovação e configuração.
-Respostas curtas (2 a 5 frases). Não invente preços. Se não souber, diga que vai chamar um atendente humano.
-Se o cliente pedir atendente/humano, diga que já está chamando o suporte.`;
-
-        const contents = historico.slice(-12).map(m => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.text }]
-        }));
-        if (!contents.length) contents.push({ role: 'user', parts: [{ text: 'Oi' }] });
-
-        const models = [
-          'gemini-2.0-flash-lite',
-          'gemini-1.5-flash-8b',
-          'gemini-1.5-flash',
-          'gemini-2.0-flash',
-          'gemini-2.5-flash-lite',
-          'gemini-2.5-flash',
-          'gemini-flash-latest'
-        ];
-        let resposta = null;
-        let lastErr = null;
-
-        // Até 2 tentativas por modelo, com pequena espera se estiver sobrecarregado
-        for (let tentativa = 0; tentativa < 2 && !resposta; tentativa++) {
-          if (tentativa > 0) await new Promise(r => setTimeout(r, 1200));
-          for (const model of models) {
-            try {
-              const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + GEMINI_KEY;
-              const resp = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  system_instruction: { parts: [{ text: systemPrompt }] },
-                  contents,
-                  generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
-                })
-              });
-              const data = await resp.json().catch(() => ({}));
-              if (!resp.ok) {
-                lastErr = data?.error?.message || ('HTTP ' + resp.status);
-                console.warn('Modelo', model, lastErr);
-                continue;
-              }
-              resposta = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || null;
-              if (resposta) { console.log('Bot OK com', model); break; }
-            } catch (e) {
-              lastErr = String(e);
-              console.warn('Modelo', model, e);
-            }
-          }
-        }
-
-        if (!resposta) {
-          console.error('Bot falhou:', lastErr);
-          // fallback educado se a API estiver fora
-          resposta = 'Olá! Sou o suporte automático. No momento estou com instabilidade. Descreva seu problema (app, erro na tela) que um atendente já foi avisado.';
-          toast('API sobrecarregada — resposta padrão enviada', true);
-        }
-
-        // Insere resposta do bot como agente (sem criptografia para o bot, ou com)
-        let textoBot = resposta;
-        try { textoBot = await enc(resposta, atual.id); } catch {}
-
+        botBusy = true;
         await sb.from('mensagens').insert([{
           conversa_id: atual.id,
-          texto: textoBot,
+          texto: resposta,
           remetente: 'agente',
           tipo: 'texto',
           lida: false
         }]);
+        botBusy = false;
         await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
       } catch (e) {
         console.error('chamarBot', e);
@@ -1673,6 +1654,9 @@ Se o cliente pedir atendente/humano, diga que já está chamando o suporte.`;
     document.getElementById('loginUser')?.addEventListener('keypress', e => {
       if (e.key === 'Enter') document.getElementById('loginPass')?.focus();
     });
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
     init();
   </script>
 </body>
