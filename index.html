@@ -1294,7 +1294,9 @@
         return;
       }
       conversas = res.data || [];
+      if (!isCli) await enriquecerLista();
       render();
+      atualizarAbas();
       if (!isCli) { avisarVencimentos(); listenLista(); listenInbox(); pedirNotificacao(); }
     }
 
@@ -1359,7 +1361,7 @@
           }
           if (!isCli && m.remetente === 'cliente' && aberto) nl = 0;
           await sb.from('conversas').update({ ultima_msg: preview, nao_lidas: nl, updated_at: new Date().toISOString() }).eq('id', m.conversa_id);
-          if (!isCli) render(document.getElementById('busca')?.value || '');
+          if (!isCli) { render(document.getElementById('busca')?.value || ''); atualizarAbas(); }
           if (atual && atual.id === m.conversa_id && !document.hidden) return;
           const conv = row || atual;
           const aba = statusAba(conv || {});
@@ -1442,7 +1444,7 @@
         const r = conversas.find(x => x.id === atual.id);
         if (r) r.nao_lidas = 0;
         sb.from('conversas').update({ nao_lidas: 0 }).eq('id', atual.id);
-        render(document.getElementById('busca')?.value || '');
+        enriquecerLista().then(() => { render(document.getElementById('busca')?.value || ''); atualizarAbas(); });
       }
     }
 
