@@ -185,6 +185,23 @@
       background: var(--surface2);
       box-shadow: inset 3px 0 0 var(--primary);
     }
+    .item.nova {
+      animation: piscaItem 1.1s ease-in-out infinite;
+      background: rgba(34,211,238,.12);
+      border: 1px solid rgba(34,211,238,.35);
+    }
+    @keyframes piscaItem {
+      0%,100% { box-shadow: inset 3px 0 0 #22d3ee; background: rgba(34,211,238,.08); }
+      50% { box-shadow: inset 3px 0 0 #f472b6; background: rgba(244,114,182,.16); }
+    }
+    .item-right { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+    .badge-n {
+      min-width: 20px; height: 20px; padding: 0 6px;
+      border-radius: 999px; background: #ef4444; color: #fff;
+      font-size: 11px; font-weight: 800; display: inline-flex;
+      align-items: center; justify-content: center;
+    }
+    .item-sub.preview { color: #cbd5e1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
     .av {
       width: 50px; height: 50px; border-radius: 50%;
       background: linear-gradient(135deg, #3b82f6, #8b5cf6);
@@ -1334,8 +1351,50 @@
         return;
       }
       conversas = res.data || [];
+      await carregarMetaMsgs();
       render();
       if (!isCli) avisarVencimentos();
+    }
+
+    window.msgMeta = window.msgMeta || {};
+    function previewDe(m) {
+      if (!m) return '';
+      const tipo = (m.tipo||'texto').toLowerCase();
+      if (tipo === 'imagem' || tipo === 'image' || tipo === 'foto') return '📷 Foto';
+      if (tipo === 'video') return '🎬 Vídeo';
+      if (tipo === 'audio') return '🎤 Áudio';
+      let tx = m.texto || '';
+      if (tx.startsWith('enc:')) return 'Mensagem';
+      tx = tx.replace(/\s+/g,' ').trim();
+      return tx.slice(0, 60) || 'Mensagem';
+    }
+    async function carregarMetaMsgs() {
+      window.msgMeta = {};
+      if (!conversas.length) return;
+      const ids = conversas.map(c => c.id);
+      const { data } = await sb.from('mensagens').select('id,conversa_id,texto,tipo,remetente,lida,created_at').in('conversa_id', ids).order('created_at', { ascending: false }).limit(400);
+      const seen = {};
+      for (const m of (data || [])) {
+        const id = m.conversa_id;
+        if (!window.msgMeta[id]) window.msgMeta[id] = { unread: 0, preview: '', at: m.created_at };
+        if (!seen[id]) {
+          window.msgMeta[id].preview = previewDe(m);
+          seen[id] = true;
+        }
+        if (m.remetente === 'cliente' && !m.lida) window.msgMeta[id].unread += 1;
+      }
+    }
+    function registrarNovaLista(m) {
+      if (!m || !m.conversa_id) return;
+      const id = m.conversa_id;
+      if (!window.msgMeta[id]) window.msgMeta[id] = { unread: 0, preview: '' };
+      window.msgMeta[id].preview = previewDe(m);
+      if (m.remetente === 'cliente') {
+        if (!(atual && atual.id === id)) window.msgMeta[id].unread = (window.msgMeta[id].unread || 0) + 1;
+      }
+      const c = (conversas||[]).find(x => x.id === id);
+      if (c) c.updated_at = m.created_at || new Date().toISOString();
+      render(document.getElementById('busca')?.value || '');
     }
 
     function render(f = '') {
@@ -1350,13 +1409,20 @@
         const on = c.last_seen_cliente && (Date.now() - new Date(c.last_seen_cliente).getTime() < 45000);
         const at = atual && atual.id === c.id ? 'ativo' : '';
         const sid = String(c.id || '').replace(/'/g, '');
-        return `<div class="item ${at}" onclick="openChat('${sid}')">
+        const meta = (window.msgMeta && window.msgMeta[sid]) || {};
+        const nNovas = meta.unread || 0;
+        const prev = meta.preview || subCliente(c);
+        const clsNova = nNovas ? ' nova' : '';
+        return `<div class="item ${at}${clsNova}" onclick="openChat('${sid}')">
           <div class="av" style="overflow:hidden">${htmlAvCliente(sid, nome.charAt(0).toUpperCase(), on, c)}</div>
           <div class="item-info">
             <div class="item-nome">${esc(nome)}</div>
-            <div class="item-sub">${subCliente(c)}</div>
+            <div class="item-sub preview">${esc(prev)}</div>
           </div>
-          <div class="item-hora">${fmt(c.updated_at)}</div>
+          <div class="item-right">
+            <div class="item-hora">${fmt(c.updated_at)}</div>
+            ${nNovas ? '<span class="badge-n">'+(nNovas>99?'99+':nNovas)+'</span>' : ''}
+          </div>
           <button class="btn-del" title="Excluir" onclick="excluirCliente('${sid}', this.dataset.nome, event)" data-nome="${esc(nome)}">🗑️</button>
         </div>`;
       }).join('');
@@ -1490,6 +1556,7 @@
       }
 
       document.getElementById('app').classList.add('open');
+      if (window.msgMeta && atual && window.msgMeta[atual.id]) window.msgMeta[atual.id].unread = 0;
       render(document.getElementById('busca')?.value || '');
       const seen = isCli ? atual.last_seen_agente : atual.last_seen_cliente;
       setStatus(seen);
@@ -1701,6 +1768,7 @@
           const tipo = (m.tipo||'texto');
           const corpo = tipo === 'imagem' ? 'Enviou uma foto' : tipo === 'video' ? 'Enviou um vídeo' : tipo === 'audio' ? 'Enviou um áudio' : (m.texto && !String(m.texto).startsWith('enc:') ? String(m.texto).slice(0,80) : 'Nova mensagem');
           avisarMsg(nome, corpo, m.id);
+          if (!isCli) registrarNovaLista(m);
         })
         .subscribe();
       if (window._pollN) clearInterval(window._pollN);
@@ -1732,10 +1800,11 @@
         .on('postgres_changes', { event:'INSERT', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
           async p => {
             await addMsg(p.new); scroll();
+            registrarNovaLista(p.new);
             const outro = isCli ? 'agente' : 'cliente';
             if (p.new.remetente === outro) {
               await sb.from('mensagens').update({ lida: true }).eq('id', p.new.id);
-              avisarMsg(isCli ? (CONFIG.nomeBot||'Lauren') : (atual.nome||'Cliente'), 'Nova mensagem', p.new.id);
+              avisarMsg(isCli ? (CONFIG.nomeBot||'Lauren') : (atual.nome||'Cliente'), previewDe(p.new) || 'Nova mensagem', p.new.id);
             }
           })
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
