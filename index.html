@@ -1448,9 +1448,8 @@
 
 
     function menuTexto() {
-      return 'Olá! Sou o suporte IPTV.\n\nComo posso te ajudar?\n\n1  Instalação do app\n2  Colocar / atualizar a lista\n3  Canal travando ou buffer\n4  Tela preta ou sem som\n5  Problema de login\n6  Renovação\n7  Falar com um atendente\n\nPode digitar o número, o nome do app ou o problema.';
+      return 'Oi, tudo bem? Aqui é o suporte IPTV.\n\nPode me contar o que está acontecendo, ou escolher:\n\n1  Quero instalar\n2  Atualizar a lista\n3  Está travando\n4  Tela preta / sem som\n5  Não consigo entrar\n6  Quero renovar\n7  Quero um atendente\n\nPode escrever “IBO”, “TiviMate”, “não abre”... eu entendo.';
     }
-
 
     const APPS = {
       'tivimate':'TiviMate|TV Box|Settings → Playlists → Add playlist → M3U URL. Cole a lista e salve.',
@@ -1580,38 +1579,40 @@
       return null;
     }
 
+
     function listaApps(tipo) {
-      if (tipo === 'cel') return 'Apps de celular que eu conheço:\n\nAndroid: Smarters, Extreme, OTT Navigator, XCIPTV, Televizo, Lazy, Flix, HOT IPTV, GSE, TiviMate (se for Android).\niPhone: GSE Smart IPTV, Smarters, HOT IPTV.\n\nEscreve o nome do seu.';
-      if (tipo === 'tv') return 'Apps de Smart TV que eu conheço:\n\nIBO Player, SS IPTV, Smart IPTV, NetIPTV, SET IPTV, Duplex, Smart UP, Smarters, Smart Plus.\nSamsung/LG ainda usam SS IPTV e Smart IPTV (MAC).\n\nQual aparece na sua TV?';
-      return 'Apps de TV Box / Fire Stick que eu conheço:\n\nTiviMate, OTT Navigator, Smarters, XCIPTV, IBO, Perfect Player, Sparkle, Purple, Televizo, Downloader (só baixa o APK), Stalker/MAG, Formuler.\n\nQual você instalou?';
+      if (tipo === 'cel') return 'No celular o pessoal mais usa Smarters, Extreme, GSE (iPhone), OTT Navigator e XCIPTV.\nQual desses você tem aí? Se for outro, manda o nome que eu te guia.';
+      if (tipo === 'tv') return 'Na Smart TV os que mais aparecem são IBO Player, SS IPTV, Smart IPTV, NetIPTV, Duplex e Smarters.\nQual o nome que mostra na sua TV?';
+      return 'Na TV Box o que mais roda é TiviMate, OTT Navigator, Smarters, XCIPTV e IBO.\nQual você instalou?';
     }
 
     function passoApp(app) {
-      return app.nome + ' (' + app.onde + ')\n\n' + app.passo + '\n\nDepois de salvar, fecha o app e abre de novo. Se não carregar, me manda o que apareceu na tela.';
+      return 'Ah, ' + app.nome + '. Esse eu conheço, roda bem em ' + app.onde + '.\n\nFaz assim:\n' + app.passo + '\n\nQuando terminar, me fala se os canais abriram. Se travar em alguma tela, descreve o que apareceu que eu te tiro.';
     }
 
     function norm(s) {
       return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     }
 
-    function detectarTema(t, estado) {
+    function detectarTema(t) {
       t = norm(t);
       if (/^(0|menu|voltar|inicio)$/.test(t)) return '0';
       if (/^[1-7]$/.test(t)) return t;
       if (acharApp(t)) return 'appnome';
-      if (/(atendente|humano|pessoa|operador)/.test(t)) return '7';
-      if (/(renov|pagar|pagamento|pix|preco|plano|vencer|vencid|mensalidade)/.test(t)) return '6';
-      if (/(instal|baixar|instalar|apk|configurar|como usa)/.test(t)) return '1';
-      if (/(lista|url|dns|portal|playlist|xtream|codigo)/.test(t)) return '2';
-      if (/(buffer|trav|lento|carreg|picot|congel)/.test(t)) return '3';
-      if (/(tela preta|preto|sem imagem|sem som|nao abre|nao carrega|nao funciona|offline)/.test(t)) return '4';
-      if (/(login|senha|usuario|entrar|acesso|invalido)/.test(t)) return '5';
-      if (/(tv ?box|box|mxq|tvbox|fire stick|firestick)/.test(t)) return 'box';
-      if (/(celular|android|iphone|telefone)/.test(t)) return 'cel';
-      if (/(smart ?tv|samsung|lg |tcl|philco|aoc)/.test(t)) return 'tv';
-      if (/(sim|foi|melhorou|deu certo|resolv|ok|certo)/.test(t)) return 'sim';
-      if (/(nao|ainda|continua|mesmo|nao deu|piorou)/.test(t)) return 'nao';
-      if (/(oi+|ola|bom dia|boa tarde|boa noite|eai|opa|menu)/.test(t)) return 'oi';
+      if (/(atendente|humano|pessoa real|operador|falar com alguem)/.test(t)) return '7';
+      if (/(renov|pagar|pix|boleto|preco|plano|vencer|vencid|mensalidade|acabou o prazo)/.test(t)) return '6';
+      if (/(como instala|instal|baixar|apk|primeiro acesso|acabou de comprar)/.test(t)) return '1';
+      if (/(lista|url|dns|portal|playlist|xtream|codigo da lista|atualizar a lista)/.test(t)) return '2';
+      if (/(buffer|trav|lento|picot|congel|engasg|carregando sem parar)/.test(t)) return '3';
+      if (/(tela preta|preto|sem imagem|sem som|mudo|nao abre|nao carrega|nao funciona|offline|sumiu os canais)/.test(t)) return '4';
+      if (/(login|senha|usuario|entrar|acesso|invalido|auth|expired)/.test(t)) return '5';
+      if (/(tv ?box|box|mxq|fire stick|firestick|formuler|mag )/.test(t)) return 'box';
+      if (/(celular|android|iphone|telefone|xiaomi|samsung galaxy)/.test(t)) return 'cel';
+      if (/(smart ?tv|samsung|lg |tcl|philco|aoc|roku)/.test(t)) return 'tv';
+      if (/^(sim|foi|melhorou|deu certo|resolv|ok|certo|consegui|abriu)(\b|!|\.|$)/.test(t)) return 'sim';
+      if (/(nao deu|nao funcion|ainda nao|continua|mesmo erro|piorou|nada|nao acho)/.test(t)) return 'nao';
+      if (/(obrigad|valeu|thanks|tmj)/.test(t)) return 'valeu';
+      if (/(oi+|ola|bom dia|boa tarde|boa noite|eai|opa|menu|tudo bem)/.test(t)) return 'oi';
       return '';
     }
 
@@ -1623,45 +1624,75 @@
         botEstado[atual.id] = 'lista';
         return passoApp(app);
       }
-      if (tema === '0' || tema === 'oi') { botEstado[atual.id] = 'menu'; return menuTexto(); }
-      if (tema === '1') { botEstado[atual.id] = 'instal'; return 'Vamos instalar.\n\nQual aparelho?\n• Celular\n• Smart TV\n• TV Box\n\nPode escrever o nome.'; }
-      if (tema === '2') { botEstado[atual.id] = 'lista'; return 'Para colocar a lista, me fala o app.\n\nCelular: Smarters, GSE, Extreme\nTV: IBO, SS IPTV, NetIPTV, Duo\nBox: TiviMate, OTT Navigator, Smarters\n\nQual é o seu?'; }
-      if (tema === '3') { botEstado[atual.id] = 'buffer'; return 'Canal travando:\n1. Teste outro canal\n2. Se todos travam, reinicie o app\n3. Reinicie o aparelho\n\nQual app você usa?'; }
-      if (tema === '4') { botEstado[atual.id] = 'preta'; return 'Tela preta: está em TODOS os canais ou só em alguns?\nMe fala também o app (IBO, TiviMate, Smarters...).'; }
-      if (tema === '5') { botEstado[atual.id] = 'login'; return 'Login: usuário e senha sem espaço.\nO que aparece? Inválido, vencido ou não conecta?\nQual app?'; }
-      if (tema === '6') { botEstado[atual.id] = 'renov'; return 'Para renovar me manda nome e o app que usa.\nUm atendente confirma o valor e envia o Pix.'; }
-      if (tema === '7') { botEstado[atual.id] = 'humano'; return 'Vou chamar um atendente (08:00 às 23:00).\nPode ir escrevendo aparelho, app e o erro.'; }
-
-      if (tema === 'box') { botEstado[atual.id] = 'instal'; return listaApps('box'); }
-      if (tema === 'cel') { botEstado[atual.id] = 'instal'; return listaApps('cel'); }
-      if (tema === 'tv') { botEstado[atual.id] = 'instal'; return listaApps('tv'); }
+      if (tema === 'valeu') return 'Disponha! Se der qualquer coisa, é só chamar.';
+      if (tema === '0' || tema === 'oi') {
+        botEstado[atual.id] = 'menu';
+        return menuTexto();
+      }
+      if (tema === '1') {
+        botEstado[atual.id] = 'instal';
+        return 'Beleza, vamos colocar pra funcionar.\nPrimeiro me diz onde você vai assistir: celular, Smart TV ou TV Box?\nPode escrever do jeito que quiser.';
+      }
+      if (tema === '2') {
+        botEstado[atual.id] = 'lista';
+        return 'Tranquilo. A lista muda de lugar em cada app.\nMe fala o nome do aplicativo que está na tela, que eu te digo o clique certo.';
+      }
+      if (tema === '3') {
+        botEstado[atual.id] = 'buffer';
+        return 'Entendi, tá picotando. Isso quase sempre é canal pesado ou internet oscilando.\nFaz um teste: abre um canal diferente. Se o outro for liso, o problema é daquele canal. Se todos travam, a gente olha o app e a rede.\nQual app você está usando?';
+      }
+      if (tema === '4') {
+        botEstado[atual.id] = 'preta';
+        return 'Tela preta a gente separa em dois casos.\nTá preto em todo mundo ou só em alguns canais?\nMe responde isso e, se puder, o nome do app.';
+      }
+      if (tema === '5') {
+        botEstado[atual.id] = 'login';
+        return 'Login é chato, mas é rápido de achar.\nA tela fala o quê? Senha errada, vencido, ou só fica girando?\nManda a frase do erro se aparecer.';
+      }
+      if (tema === '6') {
+        botEstado[atual.id] = 'renov';
+        return 'Fechamos renovação com nome e o app que você usa.\nPode mandar os dois aqui que um atendente te devolve o valor e o Pix.';
+      }
+      if (tema === '7') {
+        botEstado[atual.id] = 'humano';
+        return 'Combinado, vou passar pra um atendente.\nFica à vontade pra ir adiantando: aparelho, app e o que está acontecendo. Quanto mais detalhe, mais rápido resolve.';
+      }
+      if (tema === 'box') { botEstado[atual.id] = 'instal'; return 'TV Box então.\n' + listaApps('box'); }
+      if (tema === 'cel') { botEstado[atual.id] = 'instal'; return 'No celular é mais simples.\n' + listaApps('cel'); }
+      if (tema === 'tv') { botEstado[atual.id] = 'instal'; return 'Smart TV, beleza.\n' + listaApps('tv'); }
 
       if (tema === 'sim') {
-        if (estado === 'buffer') return 'Bom. Se travar de novo, me fala o app e o nome do canal.';
-        if (estado === 'instal') return 'Perfeito. Se os canais não aparecerem, me fala o app que eu te mostro onde colar a lista.';
-        return 'Beleza. Se precisar de mais alguma coisa, é só escrever.';
+        if (estado === 'buffer') return 'Boa. Se voltar a travar, me fala o canal e o app que a gente ajusta.';
+        if (estado === 'instal' || estado === 'lista') return 'Perfeito. Agora é só assistir. Se a lista sumir algum dia, manda um oi que eu te ensino a colocar de novo.';
+        if (estado === 'preta') return 'Ótimo que voltou. Se um canal específico ficar preto, me manda o nome dele.';
+        return 'Fechado. Qualquer coisa, é só escrever.';
       }
       if (tema === 'nao') {
-        if (estado === 'buffer') return 'Então testa a internet no YouTube. Se o YouTube for bem, me fala o app que a gente troca a forma da lista (M3U ou Xtream).';
-        if (estado === 'instal') return 'Sem problema. Me diz o nome do app que aparece na tela.';
-        if (estado === 'preta') return 'Se continua preto, quase sempre é lista ou plano vencido. Qual app e o plano está em dia?';
-        return 'Me explica com outras palavras: aparelho, app e o que a tela mostra.';
+        if (estado === 'buffer') return 'Então não é um canal isolado. Abre o YouTube nesse mesmo aparelho. Se o YouTube também travar, é internet. Se o YouTube for bem, me fala o app que eu te passo outra forma de lista.';
+        if (estado === 'instal') return 'Sem pressa. Manda uma foto da tela ou o nome do app. Com isso eu te digo o próximo toque, sem adivinhação.';
+        if (estado === 'preta') return 'Se continua preto, as causas mais comuns são lista velha ou plano vencido. Seu acesso está em dia? Qual app?';
+        if (estado === 'login') return 'Aí ou a senha foi digitada com espaço, ou a conta venceu. Confere os dois e me diz o que a tela escreveu.';
+        return 'Ok, vamos por partes. Aparelho, app e o que você vê na tela. Com essas três coisas eu te destravo.';
       }
 
-      if (estado === 'instal') return listaApps('box') + '\n\nSe for celular ou Smart TV, escreve isso que eu listo os apps certos.';
-      if (estado === 'lista') return 'Me manda só o nome do app. Exemplo: TiviMate, IBO, Smarters, SS IPTV...';
-      if (estado === 'buffer') return 'Travou em um canal só ou em todos? E qual é o app?';
-      if (estado === 'preta') return 'Todos pretos ou só alguns? Qual app?';
-      if (estado === 'login') return 'Copia o erro da tela e o nome do app.';
-      if (estado === 'renov') return 'Manda nome e app para o atendente fechar o Pix.';
-      if (estado === 'humano') return 'Já está na fila. Adianta: aparelho, app e erro.';
-      if (t.length > 12) return 'Entendi. Me diz o aparelho (celular, TV ou Box) e o nome do app que eu te passo o passo certo.';
-      return 'Pode escrever o app (ex: IBO, TiviMate) ou escolher 1 a 7.';
+      if (estado === 'instal') return 'Me confirma só o aparelho: Box, celular ou TV. Sem isso eu acabo te mandando o caminho do app errado.';
+      if (estado === 'lista') return 'Me joga o nome do app. Tipo: “é IBO” ou “é TiviMate”. Aí eu paro de falar genérico e te passo o menu certinho.';
+      if (estado === 'buffer') return 'Me responde bem direto: travou um canal ou todos? E qual é o app?';
+      if (estado === 'preta') return 'Preciso dessa: todos pretos ou só alguns? E o app qual é?';
+      if (estado === 'login') return 'Copia o texto do erro pra cá. Uma frase resolve metade do problema.';
+      if (estado === 'renov') return 'Pode mandar nome e app que o atendente já encaixa o Pix.';
+      if (estado === 'humano') return 'Já deixei na fila. Se quiser adiantar, manda aparelho + app + erro.';
+
+      if (t.length > 8) {
+        botEstado[atual.id] = 'livre';
+        return 'Tô contigo. Pra eu não te mandar passo errado, me fala duas coisas: onde você assiste (celular, TV ou Box) e o nome do app.\nPode ser curto, tipo “box tivimate”.';
+      }
+      return 'Pode falar do jeito que quiser. Se preferir número: 1 instalar, 2 lista, 3 travando, 4 tela preta, 5 login, 6 renovar, 7 atendente.';
     }
 
     function respostaLocal(texto, historico) {
       const estado = (atual && botEstado[atual.id]) || 'menu';
-      const tema = detectarTema(texto, estado);
+      const tema = detectarTema(texto);
       return respostaTema(tema, texto, estado);
     }
 
