@@ -337,8 +337,9 @@
     }
     .bubble .acts button:hover { background: rgba(34,211,238,.18); }
     .bubble img {
-      max-width: 100%; max-height: 270px; border-radius: 14px;
+      max-width: 100%; max-height: 280px; border-radius: 14px;
       display: block; margin-bottom: 5px; cursor: pointer;
+      filter: none; background: #0b1220;
     }
     .bubble video {
       max-width: 100%; max-height: 270px; border-radius: 14px;
@@ -2005,7 +2006,7 @@
         const url = URL.createObjectURL(blob);
         const img = new Image();
         img.onload = () => {
-          const max = 720;
+          const max = 1080;
           let w = img.width, h = img.height;
           if (w > max || h > max) {
             const s = Math.min(max/w, max/h);
@@ -2017,7 +2018,7 @@
           ctx.imageSmoothingEnabled = true;
           ctx.drawImage(img, 0, 0, w, h);
           URL.revokeObjectURL(url);
-          cv.toBlob(b => resolve(b || blob), 'image/jpeg', 0.5);
+          cv.toBlob(b => resolve(b || blob), 'image/jpeg', 0.86);
         };
         img.onerror = () => { URL.revokeObjectURL(url); resolve(blob); };
         img.src = url;

@@ -338,8 +338,10 @@
     }
     .bubble .acts button:hover { background: rgba(34,211,238,.18); }
     .bubble img {
-      max-width: 100%; max-height: 270px; border-radius: 14px;
+      max-width: 100%; max-height: 320px; border-radius: 14px;
       display: block; margin-bottom: 5px; cursor: pointer;
+      background: #d7dee6;
+      object-fit: contain;
     }
     .bubble video {
       max-width: 100%; max-height: 270px; border-radius: 14px;
@@ -507,12 +509,16 @@
       border: 1px solid var(--border2); box-shadow: var(--shadow);
     }
     .lb {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.94);
+      position: fixed; inset: 0; background: rgba(15,18,24,0.88);
       display: none; align-items: center; justify-content: center;
-      z-index: 300; padding: 20px;
+      z-index: 300; padding: 16px;
     }
     .lb.on { display: flex; }
-    .lb img { max-width: 100%; max-height: 90vh; border-radius: 14px; }
+    .lb img {
+      max-width: 100%; max-height: 90vh; border-radius: 14px;
+      background: #e6ebf0;
+      object-fit: contain;
+    }
     .lb .x {
       position: absolute; top: 16px; right: 16px; background: var(--surface2);
       color: white; border: none; width: 44px; height: 44px;
@@ -1558,8 +1564,12 @@
           } catch {}
         }
         const img = document.createElement('img');
-        img.src = url; img.onclick = () => openLb(url);
-        img.onerror = function() { this.outerHTML = '<a href="'+msg.url_midia+'" target="_blank" style="color:#38bdf8">📷 Abrir</a>'; };
+        img.alt = 'foto';
+        img.decoding = 'async';
+        img.style.background = '#d7dee6';
+        img.src = url;
+        img.onclick = () => openLb(url);
+        img.onerror = function() { this.outerHTML = '<a href="'+msg.url_midia+'" target="_blank" style="color:#38bdf8">📷 Abrir original</a>'; };
         div.appendChild(img);
       } else if (url && tipo === 'video') {
         if (encrypted && atual) {
@@ -1708,26 +1718,49 @@
 
     async function comprimirImagem(file) {
       try {
-        if (file.size && file.size < 180 * 1024) return file;
-        const url = URL.createObjectURL(file);
-        const img = await new Promise((resolve, reject) => {
-          const im = new Image();
-          im.onload = () => resolve(im);
-          im.onerror = reject;
-          im.src = url;
-        });
-        const max = 960;
-        let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        const nome = (file.name || '').toLowerCase();
+        const tipo = (file.type || '').toLowerCase();
+        const ehPrint = /screenshot|screen.?shot|print|captura|img_[0-9]/i.test(nome) || tipo.includes('png');
+        // Print / PNG / HEIC: envia original. Canvas no Android deixa a tela preta.
+        if (ehPrint || tipo.includes('heic') || tipo.includes('heif')) return file;
+        if (!file.size || file.size < 350 * 1024) return file;
+
+        let bitmap = null;
+        if (window.createImageBitmap) {
+          try { bitmap = await createImageBitmap(file); } catch (e) { bitmap = null; }
+        }
+        let w, h, draw;
+        if (bitmap) {
+          w = bitmap.width; h = bitmap.height; draw = bitmap;
+        } else {
+          const url = URL.createObjectURL(file);
+          const img = await new Promise((resolve, reject) => {
+            const im = new Image();
+            im.onload = () => resolve(im);
+            im.onerror = reject;
+            im.src = url;
+          });
+          w = img.naturalWidth || img.width; h = img.naturalHeight || img.height;
+          draw = img;
+          URL.revokeObjectURL(url);
+        }
+        if (!w || !h) return file;
+        const max = 1280;
+        let dw = w, dh = h;
         if (w > max || h > max) {
           const s = Math.min(max / w, max / h);
-          w = Math.round(w * s); h = Math.round(h * s);
+          dw = Math.round(w * s); dh = Math.round(h * s);
         }
         const cv = document.createElement('canvas');
-        cv.width = w; cv.height = h;
-        cv.getContext('2d').drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(url);
-        const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.62));
-        return blob && blob.size ? blob : file;
+        cv.width = dw; cv.height = dh;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#e6ebf0';
+        ctx.fillRect(0, 0, dw, dh);
+        ctx.drawImage(draw, 0, 0, dw, dh);
+        if (bitmap && bitmap.close) try { bitmap.close(); } catch(e) {}
+        const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.82));
+        if (!blob || blob.size < 4000) return file;
+        return blob;
       } catch (e) {
         return file;
       }
