@@ -1575,8 +1575,8 @@
         if (encrypted && atual) {
           try { const r = await fetch(url); const d = await decBlob(await r.blob(), atual.id, 'video/mp4'); if (d) url = URL.createObjectURL(d); } catch {}
         }
-        const v = document.createElement('video'); v.src = url; v.controls = true; v.playsInline = true;
-        v.style.cssText = 'max-width:100%;max-height:260px;border-radius:12px;display:block;background:#000';
+        const v = document.createElement('video'); v.src = url; v.controls = true; v.playsInline = true; v.preload = 'metadata';
+        v.style.cssText = 'max-width:100%;max-height:360px;border-radius:12px;display:block;background:#000';
         div.appendChild(v);
       } else if (url && tipo === 'audio') {
         if (encrypted && atual) {
@@ -1776,7 +1776,7 @@
       const file = ev.target.files && ev.target.files[0];
       ev.target.value = '';
       if (!file || !atual) return;
-      if (file.size > 40 * 1024 * 1024) return toast('Arquivo grande demais (máx 40MB)', true);
+      if (file.size > 200 * 1024 * 1024) return toast('Vídeo grande demais (máx 200MB)', true);
       const toastEl = document.createElement('div'); toastEl.className = 'uploading'; toastEl.textContent = 'Enviando...';
       document.body.appendChild(toastEl);
       try {
@@ -1799,7 +1799,8 @@
             ctF = n.endsWith('.png') ? 'image/png' : n.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
           }
         } else if (tipo === 'video') {
-          toastEl.textContent = 'Enviando vídeo...';
+          const mb = (file.size/1048576).toFixed(1);
+          toastEl.textContent = 'Enviando vídeo '+mb+' MB...';
           if (!ctF || ctF === 'application/octet-stream') ctF = 'video/mp4';
         }
 

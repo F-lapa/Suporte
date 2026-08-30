@@ -1971,8 +1971,8 @@
             else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mime = 'video/webm;codecs=vp8';
             else if (MediaRecorder.isTypeSupported('video/webm')) mime = 'video/webm';
             else if (MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
-            const rec = mime ? new MediaRecorder(mix, { mimeType: mime, videoBitsPerSecond: 350000, audioBitsPerSecond: 32000 })
-                             : new MediaRecorder(mix, { videoBitsPerSecond: 350000 });
+            const rec = mime ? new MediaRecorder(mix, { mimeType: mime, videoBitsPerSecond: 280000, audioBitsPerSecond: 24000 })
+                             : new MediaRecorder(mix, { videoBitsPerSecond: 280000 });
             const chunks = [];
             rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
             rec.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Falha ao comprimir')); };
@@ -2219,7 +2219,7 @@
     async function sendFile(ev) {
       const file = ev.target.files?.[0]; ev.target.value = '';
       if (!file || !atual) return;
-      if (file.size > 200*1024*1024) return toast('Vídeo grande demais (máx 200MB)', true);
+      if (file.size > 500*1024*1024) return toast('Arquivo acima de 500MB', true);
       const toastEl = document.createElement('div'); toastEl.className = 'uploading'; toastEl.textContent = 'Enviando...';
       document.body.appendChild(toastEl);
       try {
@@ -2244,7 +2244,7 @@
             up = await comprimirVideo(file, p => { toastEl.textContent = 'Comprimindo vídeo ' + Math.round(p*100) + '%'; });
             ctF = up.type || 'video/webm';
           } catch(e) {
-            if (file.size > 50*1024*1024) throw new Error('Não deu para comprimir. Envie um vídeo menor.');
+            if (file.size > 90*1024*1024) throw new Error('Não deu para comprimir este vídeo. Tente um mais curto.');
             up = file;
           }
         }
