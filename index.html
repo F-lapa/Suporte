@@ -157,6 +157,13 @@
       transition: transform 0.12s;
     }
     .btn-novo:hover { transform: translateY(-1px); }
+    .abas { display:flex; gap:8px; padding:0 14px 10px; }
+    .abas .hbtn { flex:1; justify-content:center; font-weight:700; }
+    .hbtn.pisca { animation: piscaAba 1s infinite; }
+    @keyframes piscaAba {
+      0%,100% { box-shadow:0 0 0 0 rgba(34,211,238,.0); background: var(--surface2); }
+      50% { box-shadow:0 0 0 4px rgba(34,211,238,.35); background: rgba(34,211,238,.22); color:#ecfeff; }
+    }
     .search-wrap { padding: 8px 14px 12px; }
     .search-wrap input {
       width: 100%; background: var(--surface2); border: 1px solid transparent;
@@ -771,10 +778,12 @@
       <div class="search-wrap">
         <input type="text" id="busca" placeholder="Buscar..." oninput="filtrar()">
       </div>
-      <div style="padding:0 14px 8px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="hbtn on" id="tabTeste" onclick="setAba('teste')">🧪 Teste</button>
-        <button class="hbtn" id="tabCliente" onclick="setAba('cliente')">👥 Clientes</button>
-        <button class="hbtn" onclick="copiarLinkPublico()">🔗 Link público</button>
+      <div class="abas">
+        <button class="hbtn on" id="tabTeste" onclick="setAba('teste')">🧪 Teste <span id="nTeste"></span></button>
+        <button class="hbtn" id="tabCliente" onclick="setAba('cliente')">👥 Clientes <span id="nCli"></span></button>
+      </div>
+      <div style="padding:0 14px 8px">
+        <button class="hbtn" style="width:100%;justify-content:center" onclick="copiarLinkPublico()">🔗 Copiar link público</button>
       </div>
       <div style="padding:0 14px 8px;display:flex;gap:8px">
         <button class="hbtn" onclick="filtrarVenc('hoje')">Vencem hoje</button>
@@ -1214,6 +1223,8 @@
         document.body.classList.add('cli');
         protect();
         openById(sala);
+        listenInbox();
+        pedirNotificacao();
       } else {
         // Admin: exige login
         if (localStorage.getItem(ADMIN_SESSION_KEY) === '1') {
@@ -1284,7 +1295,7 @@
       }
       conversas = res.data || [];
       render();
-      if (!isCli) { avisarVencimentos(); listenLista(); }
+      if (!isCli) { avisarVencimentos(); listenLista(); listenInbox(); pedirNotificacao(); }
     }
 
     function render(f = '') {
@@ -1312,6 +1323,42 @@
       }).join('');
     }
     let channelLista = null;
+    function pedirNotificacao() {
+      try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch(e) {}
+    }
+    function notificarApp(titulo, corpo) {
+      try { if (window.Android && Android.notify) { Android.notify(String(titulo||'Suporte'), String(corpo||'')); return; } } catch(e) {}
+      try {
+        if (window.Notification && Notification.permission === 'granted') {
+          new Notification(titulo || 'Suporte', { body: corpo || '', icon: 'suporte-avatar.png' });
+        }
+      } catch(e) {}
+    }
+    function piscarAba(aba) {
+      const el = document.getElementById(aba === 'teste' ? 'tabTeste' : 'tabCliente');
+      if (!el) return;
+      el.classList.add('pisca');
+    }
+    function listenInbox() {
+      if (window._inbox) { try { sb.removeChannel(window._inbox); } catch(e) {} }
+      window._inbox = sb.channel('inbox-'+Date.now())
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'mensagens' }, async p => {
+          const m = p.new || {};
+          if (!m.conversa_id) return;
+          if (atual && atual.id === m.conversa_id && !document.hidden) return;
+          const conv = (conversas||[]).find(x => x.id === m.conversa_id) || atual;
+          const aba = statusAba(conv || {});
+          if (!isCli && m.remetente === 'cliente') {
+            piscarAba(aba);
+            notificarApp(conv && conv.nome ? conv.nome : 'Cliente', 'Nova mensagem');
+            loadList();
+          }
+          if (isCli && m.remetente === 'agente') {
+            notificarApp('Suporte', 'Nova mensagem do suporte');
+          }
+        })
+        .subscribe();
+    }
     function listenLista() {
       if (channelLista) { try { sb.removeChannel(channelLista); } catch(e) {} }
       channelLista = sb.channel('lista-'+Date.now())
@@ -1555,8 +1602,8 @@
       abaAtual = aba === 'teste' ? 'teste' : 'cliente';
       const t = document.getElementById('tabTeste');
       const k = document.getElementById('tabCliente');
-      if (t) t.classList.toggle('on', abaAtual==='teste');
-      if (k) k.classList.toggle('on', abaAtual==='cliente');
+      if (t) { t.classList.toggle('on', abaAtual==='teste'); t.classList.remove('pisca'); }
+      if (k) { k.classList.toggle('on', abaAtual==='cliente'); k.classList.remove('pisca'); }
       render(document.getElementById('busca')?.value || '');
     }
     function copiarLinkPublico() {
@@ -1806,7 +1853,7 @@
       if (me) {
         const ticks = document.createElement('span');
         ticks.className = 'ticks' + (msg.lida ? ' read' : '');
-        ticks.textContent = msg.lida ? '✓✓' : '✓';
+        ticks.textContent = '✓✓';
         foot.appendChild(ticks);
       }
       div.appendChild(foot);
