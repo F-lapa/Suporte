@@ -1280,18 +1280,24 @@
     }
 
 
+    function vistoEm(id) {
+      return localStorage.getItem('visto_'+id) || '1970-01-01T00:00:00.000Z';
+    }
     async function enriquecerLista() {
       try {
-        const { data } = await sb.from('mensagens').select('conversa_id, remetente, lida, texto, tipo, created_at').order('created_at', { ascending: false }).limit(200);
+        const { data } = await sb.from('mensagens').select('conversa_id, remetente, texto, tipo, created_at').eq('remetente','cliente').order('created_at', { ascending: false }).limit(300);
         const last = {}, unread = {};
         for (const m of (data||[])) {
           const id = m.conversa_id;
           if (!id) continue;
           if (!last[id]) last[id] = m;
-          if (m.remetente === 'cliente' && m.lida === false) unread[id] = (unread[id]||0) + 1;
+          if (new Date(m.created_at).getTime() > new Date(vistoEm(id)).getTime()) {
+            unread[id] = (unread[id]||0) + 1;
+          }
         }
         for (const conv of (conversas||[])) {
-          conv.nao_lidas = unread[conv.id] || 0;
+          if (atual && atual.id === conv.id) { conv.nao_lidas = 0; }
+          else conv.nao_lidas = unread[conv.id] || 0;
           if (last[conv.id]) {
             const tipo = String(last[conv.id].tipo||'texto').toLowerCase();
             let t = last[conv.id].texto || '';
@@ -1304,7 +1310,7 @@
         }
       } catch(e) { console.warn('enriquecer', e); }
     }
-    function atualizarAbas() {
+        function atualizarAbas() {
       const totT = (conversas||[]).filter(c => statusAba(c)==='teste').reduce((s,c)=>s+Number(c.nao_lidas||0),0);
       const totC = (conversas||[]).filter(c => statusAba(c)==='cliente').reduce((s,c)=>s+Number(c.nao_lidas||0),0);
       const t = document.getElementById('tabTeste');
@@ -1465,6 +1471,7 @@
         if (!data) return alert('Não encontrado');
         atual = data;
       } else atual = c;
+      try { localStorage.setItem('visto_'+id, new Date().toISOString()); } catch(e) {}
       showChat();
       document.getElementById('notasTxt').value = atual.notas || '';
       const zap = document.getElementById('zapTxt'); if (zap) zap.value = atual.whatsapp || '';
