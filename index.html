@@ -1490,8 +1490,8 @@
             }
             if (p.new.remetente === 'cliente' && !isCli) {
               const tp = (p.new.tipo||'texto').toLowerCase();
-              if (tp === 'imagem' || tp === 'foto' || tp === 'image') chamarBot('[foto]');
-              else if (tp === 'video') chamarBot('[video]');
+              if (tp === 'imagem' || tp === 'foto' || tp === 'image') chamarBot('[foto]', p.new.url_midia);
+              else if (tp === 'video') chamarBot('[video]', p.new.url_midia);
               else chamarBot(p.new.texto || '');
             }
           })
@@ -1872,35 +1872,118 @@
       return respostaTema(tema, texto, estado);
     }
 
+
+    async function blobToB64(blob) {
+      const buf = await blob.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin);
+    }
+
+    async function analisarMidia(url, tipo) {
+      if (!url || !GEMINI_KEY) return null;
+      try {
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        const blob = await r.blob();
+        if (blob.size < 80 || blob.size > 4*1024*1024) return null;
+        const mime = (blob.type && blob.type.startsWith('image/')) ? blob.type : 'image/jpeg';
+        if (tipo === 'video' || (blob.type||'').startsWith('video/')) {
+          return 'Recebi o vídeo. Pra eu analisar direito, manda também uma captura da tela (foto). No vídeo eu não consigo pausar o erro.';
+        }
+        const b64 = await blobToB64(blob);
+        const prompt = `Você é atendente de suporte IPTV no Brasil. Analise a FOTO da tela do cliente.
+Fale como humano, curto (4 a 8 linhas), em português do Brasil.
+Diga: 1) o que você está vendo (app, erro, tela preta, lista, login, QR, código MAC, loja). 2) o que o cliente deve fazer agora, passo a passo.
+Não invente preço. Não fale que não consegue ver a imagem se ela estiver visível.`;
+        const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+        for (const model of models) {
+          const ctrl = new AbortController();
+          const to = setTimeout(() => ctrl.abort(), 8000);
+          const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+GEMINI_KEY, {
+            method:'POST', signal: ctrl.signal,
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              contents: [{ role:'user', parts: [
+                { text: prompt },
+                { inline_data: { mime_type: mime, data: b64 } }
+              ]}],
+              generationConfig: { temperature: 0.4, maxOutputTokens: 400 }
+            })
+          });
+          clearTimeout(to);
+          const data = await resp.json().catch(()=>({}));
+          const txt = data?.candidates?.[0]?.content?.parts?.map(x=>x.text).join('') || '';
+          if (txt) return txt.trim();
+        }
+      } catch(e) { console.warn('visao', e); }
+      return null;
+    }
+
+    async function responderIA(texto, historico) {
+      if (!GEMINI_KEY || !texto) return null;
+      try {
+        const hist = (historico||[]).slice(-8).map(m => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.text }]
+        }));
+        hist.push({ role:'user', parts:[{ text: texto }] });
+        const ctrl = new AbortController();
+        const to = setTimeout(()=>ctrl.abort(), 6000);
+        const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+GEMINI_KEY, {
+          method:'POST', signal:ctrl.signal,
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            system_instruction: { parts:[{ text:'Você é suporte IPTV humano, Brasil. Respostas curtas, claras, passo a passo. Não invente preço. Se faltar dado, pergunte aparelho e nome do app.' }] },
+            contents: hist,
+            generationConfig: { temperature: 0.5, maxOutputTokens: 280 }
+          })
+        });
+        clearTimeout(to);
+        const data = await resp.json().catch(()=>({}));
+        const txt = data?.candidates?.[0]?.content?.parts?.map(x=>x.text).join('') || '';
+        return txt.trim() || null;
+      } catch(e) { return null; }
+    }
+
     let botBusy = false;
-    async function chamarBot(textoCliente) {
+    async function chamarBot(textoCliente, midiaUrl) {
       if (!atual || botBusy) return;
       botBusy = true;
       const { data: conv } = await sb.from('conversas').select('bot_ativo, atendente_assumiu').eq('id', atual.id).single();
       if (conv && (conv.atendente_assumiu === true || conv.bot_ativo === false)) { botBusy = false; return; }
 
       try {
-        const { data: lastRows } = await sb.from('mensagens').select('remetente, texto, created_at')
+        const { data: lastRows } = await sb.from('mensagens').select('remetente, texto, tipo, created_at')
           .eq('conversa_id', atual.id).order('created_at', { ascending: false }).limit(2);
         if (lastRows && lastRows[0] && lastRows[0].remetente === 'agente') { botBusy = false; return; }
-        // Histórico recente
-        const { data: msgs } = await sb.from('mensagens').select('texto, remetente, tipo')
-          .eq('conversa_id', atual.id).eq('tipo', 'texto')
+
+        const { data: msgs } = await sb.from('mensagens').select('texto, remetente, tipo, url_midia')
+          .eq('conversa_id', atual.id)
           .order('created_at', { ascending: true }).limit(20);
 
         const historico = [];
         for (const m of (msgs || [])) {
           let txt = m.texto || '';
           if (txt.startsWith('enc:') && atual) txt = await dec(txt, atual.id);
+          const tp = (m.tipo||'texto').toLowerCase();
+          if (tp === 'imagem' || tp === 'foto' || tp === 'image') txt = txt || '[foto]';
+          if (tp === 'video') txt = txt || '[video]';
           if (!txt || txt === '[criptografado]') continue;
-          historico.push({
-            role: m.remetente === 'cliente' ? 'user' : 'assistant',
-            text: txt
-          });
+          historico.push({ role: m.remetente === 'cliente' ? 'user' : 'assistant', text: txt });
         }
 
         const ultima = (textoCliente && String(textoCliente).trim()) || ([...historico].reverse().find(m => m.role === 'user') || {}).text || 'oi';
-        const resposta = respostaLocal(ultima, historico);
+        let resposta = null;
+
+        if (midiaUrl || ultima.indexOf('[foto]') >= 0 || ultima.indexOf('[video]') >= 0) {
+          let url = midiaUrl;
+          if (!url && lastRows && lastRows[0] && lastRows[0].url_midia) url = lastRows[0].url_midia;
+          resposta = await analisarMidia(url, ultima.indexOf('[video]')>=0 ? 'video' : 'imagem');
+        }
+        if (!resposta) resposta = await responderIA(ultima, historico);
+        if (!resposta) resposta = respostaLocal(ultima, historico);
 
         await sb.from('mensagens').insert([{
           conversa_id: atual.id,
@@ -1982,7 +2065,7 @@
         await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
         toast('Enviado!');
         if (from === 'cliente' && (tipo === 'imagem' || tipo === 'video' || tipo === 'foto')) {
-          await chamarBot(tipo === 'video' ? '[video]' : '[foto]');
+          await chamarBot(tipo === 'video' ? '[video]' : '[foto]', ud.publicUrl);
         }
       } catch(e) { toast(e.message || 'Erro', true); }
       finally { toastEl.remove(); }
