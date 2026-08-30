@@ -688,7 +688,10 @@
     .cobrar-box.on { display:flex; }
     .cobrar-card { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border2); border-radius:18px; padding:18px; }
     .cobrar-card textarea { width:100%; min-height:160px; background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:12px; font-family:inherit; font-size:14px; }
-    input[type="file"] { display: none; }
+    input[type="file"] {
+      position: fixed; left: -100vw; top: 0; width: 1px; height: 1px;
+      opacity: 0; pointer-events: none;
+    }
   </style>
 
 </head>
@@ -1682,47 +1685,110 @@
     function pick(tipo) {
       tipoFile = tipo;
       const i = document.getElementById('fileInput');
-      i.accept = tipo === 'imagem' ? 'image/*' : tipo === 'video' ? 'video/*' : tipo === 'audio' ? 'audio/*' : '*/*';
+      if (!i) return toast('Seletor indisponível', true);
+      i.accept = tipo === 'imagem' ? 'image/*,image/jpeg,image/png,image/webp,image/heic' :
+                 tipo === 'video' ? 'video/*,video/mp4,video/quicktime,video/3gpp' :
+                 tipo === 'audio' ? 'audio/*' : '*/*';
+      i.value = '';
       i.click();
     }
 
+    function extOf(file, tipo) {
+      const n = (file.name || '').toLowerCase();
+      const t = (file.type || '').toLowerCase();
+      if (tipo === 'imagem') return 'jpg';
+      if (n.includes('.')) return n.split('.').pop().replace(/[^a-z0-9]/g,'').slice(0,5) || 'bin';
+      if (t.includes('mp4') || t.includes('m4v')) return 'mp4';
+      if (t.includes('quicktime') || t.includes('mov')) return 'mov';
+      if (t.includes('3gpp')) return '3gp';
+      if (t.includes('webm')) return 'webm';
+      if (t.includes('mpeg') || t.includes('mp3')) return 'mp3';
+      return tipo === 'video' ? 'mp4' : tipo === 'audio' ? 'm4a' : 'bin';
+    }
+
+    async function comprimirImagem(file) {
+      try {
+        if (file.size && file.size < 180 * 1024) return file;
+        const url = URL.createObjectURL(file);
+        const img = await new Promise((resolve, reject) => {
+          const im = new Image();
+          im.onload = () => resolve(im);
+          im.onerror = reject;
+          im.src = url;
+        });
+        const max = 960;
+        let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        if (w > max || h > max) {
+          const s = Math.min(max / w, max / h);
+          w = Math.round(w * s); h = Math.round(h * s);
+        }
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.62));
+        return blob && blob.size ? blob : file;
+      } catch (e) {
+        return file;
+      }
+    }
+
     async function sendFile(ev) {
-      const file = ev.target.files?.[0]; ev.target.value = '';
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
       if (!file || !atual) return;
-      if (file.size > 50*1024*1024) return toast('Máx 50MB', true);
+      if (file.size > 40 * 1024 * 1024) return toast('Arquivo grande demais (máx 40MB)', true);
       const toastEl = document.createElement('div'); toastEl.className = 'uploading'; toastEl.textContent = 'Enviando...';
       document.body.appendChild(toastEl);
       try {
-        let tipo = tipoFile;
-        if (file.type.startsWith('image/')) tipo = 'imagem';
-        else if (file.type.startsWith('video/')) tipo = 'video';
-        else if (file.type.startsWith('audio/')) tipo = 'audio';
-        let ct = file.type || 'application/octet-stream';
-        const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
-        if (tipo === 'audio' && (!ct || ct === 'application/octet-stream')) {
-          ct = ext === 'mp3' ? 'audio/mpeg' : ext === 'm4a' ? 'audio/mp4' : 'audio/webm';
-        }
-        let up = file, ctF = ct;
+        const mime = (file.type || '').toLowerCase();
+        const nomeOrig = (file.name || '').toLowerCase();
+        let tipo = tipoFile || 'arquivo';
+        if (mime.startsWith('image/') || /\.(jpe?g|png|webp|heic|gif)$/.test(nomeOrig)) tipo = 'imagem';
+        else if (mime.startsWith('video/') || /\.(mp4|mov|3gp|webm|mkv)$/.test(nomeOrig)) tipo = 'video';
+        else if (mime.startsWith('audio/') || /\.(m4a|mp3|ogg|wav|aac)$/.test(nomeOrig)) tipo = 'audio';
+
+        let up = file, ctF = mime || 'application/octet-stream';
         if (tipo === 'imagem') {
-          toastEl.textContent = 'Otimizando foto...';
+          toastEl.textContent = 'Otimizando...';
           up = await comprimirImagem(file);
           ctF = 'image/jpeg';
+        } else if (tipo === 'video') {
+          toastEl.textContent = 'Enviando vídeo...';
+          if (!ctF || ctF === 'application/octet-stream') ctF = 'video/mp4';
         }
-        const ext2 = tipo === 'imagem' ? 'jpg' : ext;
-        let nome = atual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext2;
-        let nomeF = nome;
+
+        const ext2 = extOf(file, tipo);
+        const nomeF = atual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext2;
         const from = isCli ? 'cliente' : 'agente';
-        const { error: ue } = await sb.storage.from('midias').upload(nomeF, up, { cacheControl:'3600', upsert:false, contentType:ctF });
-        if (ue) throw new Error(ue.message);
+
+        toastEl.textContent = 'Enviando...';
+        let ue = (await sb.storage.from('midias').upload(nomeF, up, {
+          cacheControl: '3600', upsert: true, contentType: ctF
+        })).error;
+        if (ue) {
+          ue = (await sb.storage.from('midias').upload(nomeF, up, {
+            cacheControl: '3600', upsert: true, contentType: 'application/octet-stream'
+          })).error;
+        }
+        if (ue) throw new Error(ue.message || 'Falha no envio');
+
         const { data: ud } = sb.storage.from('midias').getPublicUrl(nomeF);
-        let texto = file.name || '';
-        if (from === 'agente' && texto) try { texto = await enc(texto, atual.id); } catch {}
-        const { error: me } = await sb.from('mensagens').insert([{ conversa_id:atual.id, texto, remetente:from, tipo, url_midia:ud.publicUrl, lida:false }]);
+        let texto = file.name || (tipo === 'imagem' ? 'Foto' : tipo === 'video' ? 'Vídeo' : 'Arquivo');
+        if (from === 'agente' && texto) try { texto = await enc(texto, atual.id); } catch(e) {}
+
+        const { error: me } = await sb.from('mensagens').insert([{
+          conversa_id: atual.id, texto, remetente: from, tipo, url_midia: ud.publicUrl, lida: false
+        }]);
         if (me) throw new Error(me.message);
-        await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
+        sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
         toast('Enviado!');
-      } catch(e) { toast(e.message || 'Erro', true); }
-      finally { toastEl.remove(); }
+      } catch (e) {
+        console.error(e);
+        toast(e.message || 'Erro ao enviar', true);
+      } finally {
+        toastEl.remove();
+      }
     }
 
     async function toggleRec() { if (recording) stopRec(); else await startRec(); }
