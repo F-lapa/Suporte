@@ -1876,41 +1876,63 @@
       return btoa(bin);
     }
 
-    async function analisarMidia(url, tipo) {
-      if (!url || !GEMINI_KEY) return null;
+    async function comprimirImagem(blob) {
+      return new Promise((resolve) => {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          const max = 1280;
+          let w = img.width, h = img.height;
+          if (w > max || h > max) {
+            const s = Math.min(max/w, max/h);
+            w = Math.round(w*s); h = Math.round(h*s);
+          }
+          const cv = document.createElement('canvas');
+          cv.width = w; cv.height = h;
+          cv.getContext('2d').drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          cv.toBlob(b => resolve(b || blob), 'image/jpeg', 0.72);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(blob); };
+        img.src = url;
+      });
+    }
+
+    async function analisarMidia(url, tipo, arquivo) {
+      if (!GEMINI_KEY) return null;
       try {
-        const r = await fetch(url);
-        if (!r.ok) return null;
-        const blob = await r.blob();
-        if (blob.size < 80 || blob.size > 4*1024*1024) return null;
-        const mime = (blob.type && blob.type.startsWith('image/')) ? blob.type : 'image/jpeg';
-        if (tipo === 'video' || (blob.type||'').startsWith('video/')) {
-          return 'Recebi o vídeo. Pra eu analisar direito, manda também uma captura da tela (foto). No vídeo eu não consigo pausar o erro.';
+        if (tipo === 'video') {
+          return 'Recebi o vídeo. Manda uma foto parada da tela (captura) que eu leio o erro e te digo o clique certo.';
         }
+        let blob = arquivo || null;
+        if (!blob && url) {
+          try { const r = await fetch(url); if (r.ok) blob = await r.blob(); } catch(e) {}
+        }
+        if (!blob) return null;
+        if (!(blob.type||'').startsWith('image/') && !arquivo) return null;
+        blob = await comprimirImagem(blob);
         const b64 = await blobToB64(blob);
-        const prompt = `Você é atendente de suporte IPTV no Brasil. Analise a FOTO da tela do cliente.
-Fale como humano, curto (4 a 8 linhas), em português do Brasil.
-Diga: 1) o que você está vendo (app, erro, tela preta, lista, login, QR, código MAC, loja). 2) o que o cliente deve fazer agora, passo a passo.
-Não invente preço. Não fale que não consegue ver a imagem se ela estiver visível.`;
-        const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+        const prompt = 'Analise esta foto da tela do cliente de IPTV. Diga exatamente o que aparece (nome do app, texto de erro, tela preta, login, QR, MAC, lista, loja). Depois explique o que ele deve fazer agora, passo a passo, em portugues do Brasil, no maximo 8 linhas. Nao invente preco.';
+        const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
         for (const model of models) {
           const ctrl = new AbortController();
-          const to = setTimeout(() => ctrl.abort(), 8000);
+          const to = setTimeout(() => ctrl.abort(), 12000);
           const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+GEMINI_KEY, {
             method:'POST', signal: ctrl.signal,
             headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
               contents: [{ role:'user', parts: [
                 { text: prompt },
-                { inline_data: { mime_type: mime, data: b64 } }
+                { inline_data: { mime_type: 'image/jpeg', data: b64 } }
               ]}],
-              generationConfig: { temperature: 0.4, maxOutputTokens: 400 }
+              generationConfig: { temperature: 0.3, maxOutputTokens: 500 }
             })
           });
           clearTimeout(to);
           const data = await resp.json().catch(()=>({}));
           const txt = data?.candidates?.[0]?.content?.parts?.map(x=>x.text).join('') || '';
           if (txt) return txt.trim();
+          console.warn('visao modelo', model, data?.error || data);
         }
       } catch(e) { console.warn('visao', e); }
       return null;
@@ -1926,7 +1948,7 @@ Não invente preço. Não fale que não consegue ver a imagem se ela estiver vis
         hist.push({ role:'user', parts:[{ text: texto }] });
         const ctrl = new AbortController();
         const to = setTimeout(()=>ctrl.abort(), 6000);
-        const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+GEMINI_KEY, {
+        const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+GEMINI_KEY, {
           method:'POST', signal:ctrl.signal,
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
@@ -1943,7 +1965,7 @@ Não invente preço. Não fale que não consegue ver a imagem se ela estiver vis
     }
 
     let botBusy = false;
-    async function chamarBot(textoCliente, midiaUrl) {
+    async function chamarBot(textoCliente, midiaUrl, arquivo) {
       if (!atual || botBusy) return;
       botBusy = true;
       const { data: conv } = await sb.from('conversas').select('bot_ativo, atendente_assumiu').eq('id', atual.id).single();
@@ -1980,7 +2002,7 @@ Não invente preço. Não fale que não consegue ver a imagem se ela estiver vis
         if (midiaUrl || ultima.indexOf('[foto]') >= 0 || ultima.indexOf('[video]') >= 0) {
           let url = midiaUrl;
           if (!url && lastRows && lastRows[0] && lastRows[0].url_midia) url = lastRows[0].url_midia;
-          resposta = await analisarMidia(url, ultima.indexOf('[video]')>=0 ? 'video' : 'imagem');
+          resposta = await analisarMidia(url, ultima.indexOf('[video]')>=0 ? 'video' : 'imagem', arquivo);
         }
         if (!resposta) resposta = await responderIA(ultima, historico);
         if (!resposta) resposta = respostaLocal(ultima, historico);
@@ -2065,7 +2087,7 @@ Não invente preço. Não fale que não consegue ver a imagem se ela estiver vis
         await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
         toast('Enviado!');
         if (from === 'cliente' && (tipo === 'imagem' || tipo === 'video' || tipo === 'foto')) {
-          await chamarBot(tipo === 'video' ? '[video]' : '[foto]', ud.publicUrl);
+          await chamarBot(tipo === 'video' ? '[video]' : '[foto]', ud.publicUrl, file);
         }
       } catch(e) { toast(e.message || 'Erro', true); }
       finally { toastEl.remove(); }
