@@ -293,6 +293,7 @@
     #msgs::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 5px; }
 
     .bubble {
+      white-space: pre-wrap;
       max-width: 78%; padding: 10px 13px 7px;
       border-radius: 18px; font-size: 14.5px; line-height: 1.45;
       word-wrap: break-word; animation: bubbleIn 0.22s ease;
@@ -553,7 +554,8 @@
       width: 42px; height: 42px;
       flex-shrink: 0;
     }
-    body.cli .bubble { max-width: 86%; }
+    body.cli .bubble {
+      white-space: pre-wrap; max-width: 86%; }
 
     @media (max-width: 800px) {
       .sidebar { width: 100%; }
@@ -597,7 +599,8 @@
       .mbtn { width: 34px; height: 34px; font-size: 15px; }
       #inp { min-width: 0; flex: 1; padding: 10px 12px; font-size: 14px; }
       #send { width: 40px; height: 40px; font-size: 16px; }
-      .bubble { max-width: 84%; }
+      .bubble {
+      white-space: pre-wrap; max-width: 84%; }
     }
     .back {
       display: none; background: var(--surface2); border: none;
@@ -1322,8 +1325,8 @@
             if (p.new.remetente === outro) {
               await sb.from('mensagens').update({ lida: true }).eq('id', p.new.id);
             }
-            if (p.new.remetente === 'cliente') {
-              chamarBot();
+            if (p.new.remetente === 'cliente' && !isCli) {
+              chamarBot(p.new.texto || '');
             }
           })
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
@@ -1395,7 +1398,7 @@
       }
 
       if (texto && tipo === 'texto') {
-        const s = document.createElement('span'); s.textContent = texto; div.appendChild(s);
+        const s = document.createElement('div'); s.style.whiteSpace='pre-wrap'; s.innerHTML = esc(texto).replace(/\n/g,'<br>'); div.appendChild(s);
       }
 
       const foot = document.createElement('div'); foot.className = 'foot';
@@ -1437,7 +1440,7 @@
 
       // Cliente enviou → chama o bot se estiver ativo
       if (from === 'cliente') {
-        await chamarBot();
+        await chamarBot(t);
       }
     }
 
@@ -1530,15 +1533,16 @@
     }
 
     let botBusy = false;
-    async function chamarBot() {
+    async function chamarBot(textoCliente) {
       if (!atual || botBusy) return;
+      botBusy = true;
       const { data: conv } = await sb.from('conversas').select('bot_ativo, atendente_assumiu').eq('id', atual.id).single();
-      if (conv && (conv.atendente_assumiu === true || conv.bot_ativo === false)) return;
+      if (conv && (conv.atendente_assumiu === true || conv.bot_ativo === false)) { botBusy = false; return; }
 
       try {
-        const { data: lastRows } = await sb.from('mensagens').select('remetente, tipo, texto, created_at')
-          .eq('conversa_id', atual.id).order('created_at', { ascending: false }).limit(1);
-        if (lastRows && lastRows[0] && lastRows[0].remetente === 'agente') return;
+        const { data: lastRows } = await sb.from('mensagens').select('remetente, texto, created_at')
+          .eq('conversa_id', atual.id).order('created_at', { ascending: false }).limit(2);
+        if (lastRows && lastRows[0] && lastRows[0].remetente === 'agente') { botBusy = false; return; }
         // Histórico recente
         const { data: msgs } = await sb.from('mensagens').select('texto, remetente, tipo')
           .eq('conversa_id', atual.id).eq('tipo', 'texto')
@@ -1555,10 +1559,9 @@
           });
         }
 
-        const ultima = [...historico].reverse().find(m => m.role === 'user');
-        const resposta = respostaLocal(ultima ? ultima.text : 'oi', historico);
+        const ultima = (textoCliente && String(textoCliente).trim()) || ([...historico].reverse().find(m => m.role === 'user') || {}).text || 'oi';
+        const resposta = respostaLocal(ultima, historico);
 
-        botBusy = true;
         await sb.from('mensagens').insert([{
           conversa_id: atual.id,
           texto: resposta,
@@ -1566,11 +1569,11 @@
           tipo: 'texto',
           lida: false
         }]);
-        botBusy = false;
         await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
       } catch (e) {
         console.error('chamarBot', e);
       }
+      botBusy = false;
     }
 
     function updateBotBtn() {
