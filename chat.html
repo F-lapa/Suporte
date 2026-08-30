@@ -524,6 +524,30 @@
       color: white; border: none; width: 44px; height: 44px;
       border-radius: 12px; font-size: 20px; cursor: pointer;
     }
+    .video-full {
+      position: fixed; inset: 0; z-index: 350;
+      background: #000;
+      display: none; flex-direction: column;
+    }
+    .video-full.on { display: flex; }
+    .video-full-bar {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px calc(10px + env(safe-area-inset-top, 0px));
+      background: linear-gradient(180deg, rgba(0,0,0,.75), transparent);
+      position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+    }
+    .video-full-bar button {
+      background: rgba(255,255,255,.16);
+      color: #fff; border: 0; border-radius: 12px;
+      padding: 10px 14px; font-weight: 700; font-size: 14px;
+      font-family: inherit; cursor: pointer;
+    }
+    .video-full video {
+      flex: 1; width: 100%; height: 100%;
+      object-fit: contain; background: #000;
+      max-height: none !important;
+    }
 
     body.cli {
       -webkit-user-select: none !important; user-select: none !important;
@@ -836,6 +860,12 @@
     </div>
   </div>
 
+  <div class="video-full" id="videoFull">
+    <div class="video-full-bar">
+      <button type="button" onclick="fecharVideoFull()">← Voltar à conversa</button>
+    </div>
+    <div id="videoFullBox" style="flex:1;display:flex;min-height:0"></div>
+  </div>
   <div class="lb" id="lb" onclick="fecharLb()">
     <button class="x" onclick="fecharLb()">✕</button>
     <img id="lbImg" src="" alt="">
@@ -1576,8 +1606,20 @@
           try { const r = await fetch(url); const d = await decBlob(await r.blob(), atual.id, 'video/mp4'); if (d) url = URL.createObjectURL(d); } catch {}
         }
         const v = document.createElement('video'); v.src = url; v.controls = true; v.playsInline = true; v.preload = 'metadata';
-        v.style.cssText = 'max-width:100%;max-height:360px;border-radius:12px;display:block;background:#000';
+        v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline','');
+        v.style.cssText = 'max-width:100%;max-height:360px;border-radius:12px;display:block;background:#000;cursor:pointer';
+        v.addEventListener('click', (e) => {
+          if (document.getElementById('videoFull').classList.contains('on')) return;
+          e.preventDefault();
+          abrirVideoFull(v);
+        });
+        const fsHint = document.createElement('button');
+        fsHint.type = 'button';
+        fsHint.textContent = '⛶ Tela cheia';
+        fsHint.style.cssText = 'margin-top:6px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);color:#e2e8f0;border-radius:999px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit';
+        fsHint.onclick = (e) => { e.stopPropagation(); abrirVideoFull(v); };
         div.appendChild(v);
+        div.appendChild(fsHint);
       } else if (url && tipo === 'audio') {
         if (encrypted && atual) {
           try {
@@ -1645,6 +1687,45 @@
 
     function openLb(u) { document.getElementById('lbImg').src = u; document.getElementById('lb').classList.add('on'); }
     function fecharLb() { document.getElementById('lb').classList.remove('on'); }
+
+    let videoOrigParent = null;
+    let videoFullEl = null;
+    function abrirVideoFull(v) {
+      if (!v) return;
+      if (videoFullEl && videoFullEl !== v) fecharVideoFull();
+      videoFullEl = v;
+      videoOrigParent = v.parentNode;
+      const box = document.getElementById('videoFullBox');
+      const wrap = document.getElementById('videoFull');
+      if (!box || !wrap) return;
+      box.appendChild(v);
+      v.style.cssText = 'width:100%;height:100%;max-height:none;object-fit:contain;background:#000;border-radius:0';
+      wrap.classList.add('on');
+      const play = v.play();
+      if (play && play.catch) play.catch(()=>{});
+      try {
+        if (v.requestFullscreen) v.requestFullscreen().catch(()=>{});
+        else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
+      } catch(e) {}
+    }
+    function fecharVideoFull() {
+      const wrap = document.getElementById('videoFull');
+      if (wrap) wrap.classList.remove('on');
+      try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e) {}
+      if (videoFullEl && videoOrigParent) {
+        videoFullEl.style.cssText = 'max-width:100%;max-height:360px;border-radius:12px;display:block;background:#000';
+        videoOrigParent.appendChild(videoFullEl);
+        const play = videoFullEl.play();
+        if (play && play.catch) play.catch(()=>{});
+      }
+      videoFullEl = null;
+      videoOrigParent = null;
+    }
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && videoFullEl) {
+        /* native FS closed: keep custom overlay or close? keep overlay with back button */
+      }
+    });
 
     async function sendMsg() {
       if (!atual) return;

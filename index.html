@@ -513,6 +513,19 @@
     }
     .lb.on { display: flex; }
     .lb img { max-width: 100%; max-height: 90vh; border-radius: 14px; }
+    .vid-full {
+      display: none; position: fixed; inset: 0; z-index: 450;
+      background: #000; flex-direction: column;
+    }
+    .vid-full.on { display: flex; }
+    .vid-full video { flex: 1; width: 100%; height: 100%; background: #000; object-fit: contain; }
+    .vid-back {
+      position: absolute; top: calc(10px + env(safe-area-inset-top));
+      left: 12px; z-index: 2;
+      background: rgba(15,23,42,.82); color: #fff; border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px; padding: 10px 16px; font-size: 14px; font-weight: 600;
+      font-family: inherit; cursor: pointer;
+    }
     .lb .x {
       position: absolute; top: 16px; right: 16px; background: var(--surface2);
       color: white; border: none; width: 44px; height: 44px;
@@ -831,6 +844,10 @@
   <div class="lb" id="lb" onclick="fecharLb()">
     <button class="x" onclick="fecharLb()">✕</button>
     <img id="lbImg" src="" alt="">
+  </div>
+  <div class="vid-full" id="vidFull">
+    <button class="vid-back" onclick="fecharVideoFull()">Voltar à conversa</button>
+    <video id="vidFullPlayer" controls playsinline></video>
   </div>
 
   
@@ -1574,6 +1591,8 @@
         }
         const v = document.createElement('video'); v.src = url; v.controls = true; v.playsInline = true;
         v.style.cssText = 'max-width:100%;max-height:260px;border-radius:12px;display:block;background:#000';
+        v.addEventListener('click', (e) => { e.preventDefault(); abrirVideoFull(v); });
+        v.addEventListener('play', () => { /* tap also uses controls */ });
         div.appendChild(v);
       } else if (url && tipo === 'audio') {
         if (encrypted && atual) {
@@ -1640,6 +1659,31 @@
       document.getElementById('msgs').appendChild(div);
     }
 
+    let vidOrigem = null;
+    function abrirVideoFull(el) {
+      vidOrigem = el;
+      const box = document.getElementById('vidFull');
+      const p = document.getElementById('vidFullPlayer');
+      p.src = el.currentSrc || el.src;
+      p.currentTime = el.currentTime || 0;
+      const was = !el.paused;
+      el.pause();
+      box.classList.add('on');
+      p.play().catch(()=>{});
+      if (!was) p.pause();
+    }
+    function fecharVideoFull() {
+      const p = document.getElementById('vidFullPlayer');
+      const box = document.getElementById('vidFull');
+      if (vidOrigem) {
+        try {
+          vidOrigem.currentTime = p.currentTime || 0;
+          if (!p.paused) vidOrigem.play().catch(()=>{});
+        } catch(e) {}
+      }
+      p.pause();
+      box.classList.remove('on');
+    }
     function openLb(u) { document.getElementById('lbImg').src = u; document.getElementById('lb').classList.add('on'); }
     function fecharLb() { document.getElementById('lb').classList.remove('on'); }
 
