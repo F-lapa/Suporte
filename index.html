@@ -1311,13 +1311,15 @@
         const on = c.last_seen_cliente && (Date.now() - new Date(c.last_seen_cliente).getTime() < 45000);
         const at = atual && atual.id === c.id ? 'ativo' : '';
         const sid = String(c.id || '').replace(/'/g, '');
-        return `<div class="item ${at}" onclick="openChat('${sid}')">
+        const nl = Number(c.nao_lidas||0);
+          const pisca = (!at && nl>0) ? 'pisca' : '';
+          return `<div class="item ${at} ${pisca}" onclick="openChat('${sid}')">
           <div class="av">${(c.foto_cliente||fotoPerfilUrl(c.id)) ? '<img src="'+(c.foto_cliente||fotoPerfilUrl(c.id))+'" alt="" onerror="this.remove()">' : nome.charAt(0).toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
           <div class="item-info">
             <div class="item-nome">${esc(nome)}</div>
-            <div class="item-sub">${subCliente(c)}</div>
+            <div class="item-sub">${esc(subCliente(c))}</div>
           </div>
-          <div class="item-hora">${fmt(c.updated_at)}</div>
+          <div class="item-hora">${fmt(c.updated_at)}${nl>0?'<div class="badge">'+(nl>99?'99+':nl)+'</div>':''}</div>
           <button class="btn-del" title="Excluir" onclick="excluirCliente('${sid}', this.dataset.nome, event)" data-nome="${esc(nome)}">🗑️</button>
         </div>`;
       }).join('');
@@ -1349,7 +1351,14 @@
           const row = (conversas||[]).find(x => x.id === m.conversa_id);
           if (row) row.ultima_msg = preview;
           if (atual && atual.id === m.conversa_id) atual.ultima_msg = preview;
-          await sb.from('conversas').update({ ultima_msg: preview, updated_at: new Date().toISOString() }).eq('id', m.conversa_id);
+          const aberto = !!(atual && atual.id === m.conversa_id && !document.hidden && !isCli);
+          let nl = row ? Number(row.nao_lidas||0) : 0;
+          if (!isCli && m.remetente === 'cliente' && !aberto) {
+            nl += 1;
+            if (row) row.nao_lidas = nl;
+          }
+          if (!isCli && m.remetente === 'cliente' && aberto) nl = 0;
+          await sb.from('conversas').update({ ultima_msg: preview, nao_lidas: nl, updated_at: new Date().toISOString() }).eq('id', m.conversa_id);
           if (!isCli) render(document.getElementById('busca')?.value || '');
           if (atual && atual.id === m.conversa_id && !document.hidden) return;
           const conv = row || atual;
@@ -1427,7 +1436,14 @@
       startHB();
       startStatus();
       // Admin marca msgs do cliente como lidas
-      if (!isCli) markRead('cliente');
+      if (!isCli) {
+        markRead('cliente');
+        atual.nao_lidas = 0;
+        const r = conversas.find(x => x.id === atual.id);
+        if (r) r.nao_lidas = 0;
+        sb.from('conversas').update({ nao_lidas: 0 }).eq('id', atual.id);
+        render(document.getElementById('busca')?.value || '');
+      }
     }
 
     async function openById(id) {
