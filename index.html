@@ -743,6 +743,19 @@
     </div>
   </div>
 
+  <div class="login-screen hidden" id="entrarScreen">
+    <div class="login-box">
+      <div class="logo" role="img" aria-label="Suporte"></div>
+      <h2>Fale com o suporte</h2>
+      <p class="sub">Cadastre seu nome e WhatsApp para começar o teste grátis.</p>
+      <label>Seu nome</label>
+      <input type="text" id="entrarNome" placeholder="Como quer ser chamado" maxlength="50">
+      <label>WhatsApp</label>
+      <input type="tel" id="entrarZap" placeholder="48 99999-0000" maxlength="20">
+      <button class="btn-login" onclick="entrarTeste()">Quero testar</button>
+      <div class="err" id="entrarErr">Preencha nome e WhatsApp</div>
+    </div>
+  </div>
   <div class="app" id="app">
     <div class="sidebar" id="sidebar">
       <div class="sidebar-top">
@@ -757,6 +770,11 @@
       </div>
       <div class="search-wrap">
         <input type="text" id="busca" placeholder="Buscar..." oninput="filtrar()">
+      </div>
+      <div style="padding:0 14px 8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="hbtn on" id="tabTeste" onclick="setAba('teste')">🧪 Teste</button>
+        <button class="hbtn" id="tabCliente" onclick="setAba('cliente')">👥 Clientes</button>
+        <button class="hbtn" onclick="copiarLinkPublico()">🔗 Link público</button>
       </div>
       <div style="padding:0 14px 8px;display:flex;gap:8px">
         <button class="hbtn" onclick="filtrarVenc('hoje')">Vencem hoje</button>
@@ -1172,6 +1190,11 @@
       const p = new URLSearchParams(location.search);
       const hash = (location.hash || '').replace('#','');
       const sala = p.get('s') || p.get('sala') || (hash.length > 3 ? hash : null);
+      if (p.get('entrar') === '1' || p.get('cadastro') === '1' || p.get('teste') === '1') {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('entrarScreen').classList.remove('hidden');
+        return;
+      }
       isCli = p.get('cliente') === '1' || !!p.get('s') || hash.length > 3;
       if (sala && isCli) {
         // Cliente: sem login
@@ -1270,7 +1293,8 @@
       let list = conversas || [];
       if (f) list = list.filter(c => (c.nome || '').toLowerCase().includes(f.toLowerCase()));
       if (filtroVenc) list = list.filter(c => statusVenc(c) === filtroVenc || (filtroVenc==='atraso' && statusVenc(c)==='atraso'));
-      if (!list.length) { box.innerHTML = '<div class="vazio">Nenhum cliente.<br>Clique em + Novo</div>'; return; }
+      list = list.filter(c => statusAba(c) === abaAtual);
+      if (!list.length) { box.innerHTML = '<div class="vazio">'+(abaAtual==='teste'?'Nenhum teste no momento.':'Nenhum cliente. Clique em + Novo')+'</div>'; return; }
       box.innerHTML = list.map(c => {
         const nome = c.nome || 'Cliente';
         const on = c.last_seen_cliente && (Date.now() - new Date(c.last_seen_cliente).getTime() < 45000);
@@ -1317,7 +1341,7 @@
       const whatsapp = (document.getElementById('zapInput') && document.getElementById('zapInput').value || '').replace(/\D/g,'');
       const vencimento = (document.getElementById('vencInput') && document.getElementById('vencInput').value) || null;
       const id = Math.random().toString(36).replace(/[^a-z0-9]/g,'').slice(2,8);
-      let res = await sb.from('conversas').insert([{ id, nome, notas: '', whatsapp, vencimento, updated_at: new Date().toISOString() }]);
+      let res = await sb.from('conversas').insert([{ id, nome, notas: '', whatsapp, vencimento, status: 'cliente', updated_at: new Date().toISOString() }]);
       if (res.error) res = await sb.from('conversas').insert([{ id, nome, whatsapp, vencimento }]);
       if (res.error) res = await sb.from('conversas').insert([{ id, nome, notas: '', updated_at: new Date().toISOString() }]);
       if (res.error) res = await sb.from('conversas').insert([{ id, nome }]);
@@ -1506,6 +1530,7 @@
     }
     function subCliente(c) {
       const st = statusVenc(c);
+      if (statusAba(c)==='teste') return 'TESTE • ' + (c.whatsapp || 'aguardando');
       if (st === 'atraso') return 'Vencido • ' + fmtData(c.vencimento);
       if (st === 'hoje') return 'Vence HOJE • ' + (c.whatsapp || 'sem WhatsApp');
       if (st === 'breve') return 'Vence em breve • ' + fmtData(c.vencimento);
@@ -1520,6 +1545,49 @@
       return p[2] + '/' + p[1] + '/' + p[0];
     }
     let filtroVenc = '';
+    let abaAtual = 'teste';
+    function statusAba(c) {
+      const s = String((c && c.status) || '').toLowerCase();
+      if (s === 'teste' || s === 'test') return 'teste';
+      return 'cliente';
+    }
+    function setAba(aba) {
+      abaAtual = aba === 'teste' ? 'teste' : 'cliente';
+      const t = document.getElementById('tabTeste');
+      const k = document.getElementById('tabCliente');
+      if (t) t.classList.toggle('on', abaAtual==='teste');
+      if (k) k.classList.toggle('on', abaAtual==='cliente');
+      render(document.getElementById('busca')?.value || '');
+    }
+    function copiarLinkPublico() {
+      const base = location.href.split('?')[0].split('#')[0];
+      const link = base + '?entrar=1';
+      if (navigator.clipboard) navigator.clipboard.writeText(link).then(()=>toast('Link público copiado')).catch(()=>prompt('Copie:', link));
+      else prompt('Copie:', link);
+    }
+    async function entrarTeste() {
+      const nome = (document.getElementById('entrarNome').value || '').trim();
+      const zap = (document.getElementById('entrarZap').value || '').replace(/\D/g,'');
+      const err = document.getElementById('entrarErr');
+      if (!nome || zap.length < 10) { err.style.display='block'; return; }
+      err.style.display='none';
+      const id = Math.random().toString(36).replace(/[^a-z0-9]/g,'').slice(2,8);
+      const codigo = id.toUpperCase();
+      let payload = { id, nome, whatsapp: zap, status: 'teste', codigo, notas: '', updated_at: new Date().toISOString() };
+      let res = await sb.from('conversas').insert([payload]);
+      if (res.error) res = await sb.from('conversas').insert([{ id, nome, whatsapp: zap, status: 'teste' }]);
+      if (res.error) res = await sb.from('conversas').insert([{ id, nome }]);
+      if (res.error) { err.textContent = res.error.message; err.style.display='block'; return; }
+      await sb.from('mensagens').insert([{
+        conversa_id: id,
+        texto: 'Olá! Meu nome é '+nome+' e meu WhatsApp é '+zap+'. Quero fazer um teste do IPTV.',
+        remetente: 'cliente',
+        tipo: 'texto',
+        lida: false
+      }]);
+      location.replace(location.pathname + '?s=' + id);
+    }
+
     function filtrarVenc(tipo) {
       filtroVenc = tipo || '';
       render(document.getElementById('busca')?.value || '');
@@ -1554,23 +1622,23 @@
       const d = new Date();
       d.setDate(d.getDate() + 30);
       const venc = d.toISOString().slice(0,10);
-      const res = await sb.from('conversas').update({ vencimento: venc, updated_at: new Date().toISOString() }).eq('id', atual.id);
+      const res = await sb.from('conversas').update({ vencimento: venc, status: 'cliente', updated_at: new Date().toISOString() }).eq('id', atual.id);
       if (res.error) { toast('Rode o SQL do vencimento no Supabase', true); return; }
-      atual.vencimento = venc;
+      atual.vencimento = venc; atual.status = 'cliente';
       const row = conversas.find(x => x.id === atual.id);
-      if (row) row.vencimento = venc;
+      if (row) { row.vencimento = venc; row.status = 'cliente'; }
       const vencEl = document.getElementById('vencTxt');
       if (vencEl) vencEl.value = venc;
       atualizarVencInfo(atual);
       render(document.getElementById('busca')?.value || '');
       await sb.from('mensagens').insert([{
         conversa_id: atual.id,
-        texto: 'Pagamento confirmado! Seu plano foi renovado até '+fmtData(venc)+'. Qualquer coisa, é só chamar. 💚',
+        texto: 'Pagamento confirmado! Você saiu do teste e agora é cliente até '+fmtData(venc)+'. Qualquer coisa, é só chamar. 💚',
         remetente: 'agente',
         tipo: 'texto',
         lida: false
       }]);
-      toast('Renovado até '+fmtData(venc));
+      toast('Cliente ativo até '+fmtData(venc)); abaAtual='cliente'; setAba('cliente');
     }
     function abrirWhatsAppCobranca(cli) {
       cli = cli || atual;
