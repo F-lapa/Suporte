@@ -1281,22 +1281,30 @@
 
 
     function vistoEm(id) {
-      return localStorage.getItem('visto_'+id) || '1970-01-01T00:00:00.000Z';
+      let v = localStorage.getItem('visto_'+id);
+      if (!v) {
+        v = new Date().toISOString();
+        try { localStorage.setItem('visto_'+id, v); } catch(e) {}
+      }
+      return v;
     }
     async function enriquecerLista() {
       try {
-        const { data } = await sb.from('mensagens').select('conversa_id, remetente, texto, tipo, created_at').eq('remetente','cliente').order('created_at', { ascending: false }).limit(300);
+        const { data } = await sb.from('mensagens').select('conversa_id, remetente, texto, tipo, created_at').order('created_at', { ascending: false }).limit(200);
         const last = {}, unread = {};
         for (const m of (data||[])) {
           const id = m.conversa_id;
           if (!id) continue;
           if (!last[id]) last[id] = m;
-          if (new Date(m.created_at).getTime() > new Date(vistoEm(id)).getTime()) {
+          if (m.remetente === 'cliente' && new Date(m.created_at).getTime() > new Date(vistoEm(id)).getTime()) {
             unread[id] = (unread[id]||0) + 1;
           }
         }
         for (const conv of (conversas||[])) {
-          if (atual && atual.id === conv.id) { conv.nao_lidas = 0; }
+          if (!localStorage.getItem('visto_'+conv.id)) {
+            try { localStorage.setItem('visto_'+conv.id, new Date().toISOString()); } catch(e) {}
+            conv.nao_lidas = 0;
+          } else if (atual && atual.id === conv.id) conv.nao_lidas = 0;
           else conv.nao_lidas = unread[conv.id] || 0;
           if (last[conv.id]) {
             const tipo = String(last[conv.id].tipo||'texto').toLowerCase();
@@ -1319,8 +1327,8 @@
       const nC = document.getElementById('nCli');
       if (nT) nT.textContent = totT ? '('+totT+')' : '';
       if (nC) nC.textContent = totC ? '('+totC+')' : '';
-      if (t) t.classList.toggle('pisca', totT>0 && abaAtual!=='teste');
-      if (k) k.classList.toggle('pisca', totC>0 && abaAtual!=='cliente');
+      if (t) t.classList.remove('pisca');
+      if (k) k.classList.remove('pisca');
     }
     async function loadList() {
       const box = document.getElementById('lista');
@@ -1409,7 +1417,11 @@
           const conv = row || atual;
           const aba = statusAba(conv || {});
           if (!isCli && m.remetente === 'cliente') {
-            piscarAba(aba);
+            const el = document.getElementById(aba === 'teste' ? 'tabTeste' : 'tabCliente');
+            if (el && abaAtual !== aba) {
+              el.classList.add('pisca');
+              setTimeout(() => el.classList.remove('pisca'), 4000);
+            }
             notificarApp(conv && conv.nome ? conv.nome : 'Cliente', preview);
           }
           if (isCli && m.remetente === 'agente') {
