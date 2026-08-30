@@ -1111,8 +1111,9 @@
 
     function init() {
       const p = new URLSearchParams(location.search);
-      const sala = p.get('sala');
-      isCli = p.get('cliente') === '1';
+      const hash = (location.hash || '').replace('#','');
+      const sala = p.get('s') || p.get('sala') || (hash.length > 3 ? hash : null);
+      isCli = p.get('cliente') === '1' || !!p.get('s') || hash.length > 3;
       if (sala && isCli) {
         // Cliente: sem login
         document.getElementById('loginScreen').classList.add('hidden');
@@ -2219,12 +2220,20 @@
       if (e.key === 'Enter') { e.preventDefault(); sendMsg(); }
     });
 
-    function copiarLink() {
+    async function copiarLink() {
       if (!atual) return;
       const base = location.href.split('?')[0].split('#')[0];
-      const link = base + '?sala=' + atual.id + '&cliente=1';
-      prompt('Link do cliente:', link);
-      if (navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast('Copiado!')).catch(()=>{});
+      const longo = base + '?s=' + atual.id;
+      const codigo = atual.id;
+      let curto = '';
+      try {
+        const r = await fetch('https://is.gd/create.php?format=json&url=' + encodeURIComponent(longo));
+        const j = await r.json();
+        if (j && j.shorturl) curto = j.shorturl;
+      } catch(e) {}
+      const melhor = curto || codigo;
+      prompt('Envie isto ao cliente (código ou link curto):', melhor);
+      if (navigator.clipboard) navigator.clipboard.writeText(melhor).then(() => toast('Copiado: ' + melhor)).catch(()=>{});
     }
 
     function fmt(d) {
