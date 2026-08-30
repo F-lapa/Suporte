@@ -927,7 +927,7 @@
       document.addEventListener('dragstart', e => e.preventDefault());
       document.addEventListener('visibilitychange', () => {
         const m = document.getElementById('msgs');
-        if (m) m.style.filter = document.hidden ? 'blur(18px)' : 'none';
+        if (m) m.style.filter = 'none';
       });
     }
 

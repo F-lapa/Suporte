@@ -924,18 +924,18 @@
       } catch { return null; }
     }
 
+    function limparBlur() {
+      const m = document.getElementById('msgs');
+      if (m) m.style.filter = 'none';
+      document.body.style.filter = 'none';
+    }
     function protect() {
       document.addEventListener('contextmenu', e => e.preventDefault());
-      document.addEventListener('keydown', e => {
-        if (e.key === 'PrintScreen' || (e.ctrlKey && 'psScCaAuU'.includes(e.key)) || e.key === 'F12') {
-          e.preventDefault(); toast('Bloqueado', true);
-        }
-      });
       document.addEventListener('dragstart', e => e.preventDefault());
-      document.addEventListener('visibilitychange', () => {
-        const m = document.getElementById('msgs');
-        if (m) m.style.filter = document.hidden ? 'blur(18px)' : 'none';
-      });
+      document.addEventListener('visibilitychange', limparBlur);
+      document.addEventListener('pageshow', limparBlur);
+      window.addEventListener('focus', limparBlur);
+      limparBlur();
     }
 
     // Heartbeat: cada lado atualiza o próprio last_seen
