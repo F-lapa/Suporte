@@ -186,11 +186,15 @@
     }
     .av {
       width: 50px; height: 50px; border-radius: 50%;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      background: linear-gradient(135deg, #22d3ee, #6366f1);
       display: flex; align-items: center; justify-content: center;
       font-size: 18px; font-weight: 700; color: white; flex-shrink: 0;
-      position: relative;
-      box-shadow: 0 4px 12px rgba(59,130,246,0.25);
+      position: relative; overflow: hidden;
+      box-shadow: 0 4px 12px rgba(34,211,238,0.25);
+    }
+    .av img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; border-radius: 50%; display: block;
     }
     .av .dot {
       position: absolute; bottom: 1px; right: 1px;
@@ -1257,7 +1261,7 @@
       }
       conversas = res.data || [];
       render();
-      if (!isCli) avisarVencimentos();
+      if (!isCli) { avisarVencimentos(); listenLista(); }
     }
 
     function render(f = '') {
@@ -1273,7 +1277,7 @@
         const at = atual && atual.id === c.id ? 'ativo' : '';
         const sid = String(c.id || '').replace(/'/g, '');
         return `<div class="item ${at}" onclick="openChat('${sid}')">
-          <div class="av" style="${(c.foto_cliente||fotoPerfilUrl(c.id)) ? "background-image:url('"+esc(c.foto_cliente||fotoPerfilUrl(c.id))+"');background-size:cover;background-position:center;background-color:transparent" : ""}">${c.foto_cliente ? '' : nome.charAt(0).toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
+          <div class="av">${(c.foto_cliente||fotoPerfilUrl(c.id)) ? '<img src="'+(c.foto_cliente||fotoPerfilUrl(c.id))+'" alt="" onerror="this.remove()">' : nome.charAt(0).toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
           <div class="item-info">
             <div class="item-nome">${esc(nome)}</div>
             <div class="item-sub">${subCliente(c)}</div>
@@ -1282,6 +1286,13 @@
           <button class="btn-del" title="Excluir" onclick="excluirCliente('${sid}', this.dataset.nome, event)" data-nome="${esc(nome)}">🗑️</button>
         </div>`;
       }).join('');
+    }
+    let channelLista = null;
+    function listenLista() {
+      if (channelLista) { try { sb.removeChannel(channelLista); } catch(e) {} }
+      channelLista = sb.channel('lista-'+Date.now())
+        .on('postgres_changes', { event:'*', schema:'public', table:'conversas' }, () => { loadList(); })
+        .subscribe();
     }
     function avisarVencimentos() {
       const hoje = (conversas||[]).filter(x => statusVenc(x)==='hoje');
@@ -1389,14 +1400,15 @@
     }
     function aplicarFoto(el, url, nome) {
       if (!el) return;
-      if (url) {
-        el.textContent = '';
-        el.style.backgroundImage = "url('"+url+"')";
-        el.style.backgroundSize = 'cover';
-        el.style.backgroundPosition = 'center';
-        el.style.backgroundColor = 'transparent';
+      const src = url || (atual && fotoPerfilUrl(atual.id));
+      el.innerHTML = '';
+      if (src) {
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = '';
+        img.onerror = () => { img.remove(); el.textContent = (nome||'?').charAt(0).toUpperCase(); };
+        el.appendChild(img);
       } else {
-        el.style.backgroundImage = '';
         el.textContent = (nome||'?').charAt(0).toUpperCase();
       }
     }

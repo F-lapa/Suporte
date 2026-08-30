@@ -975,9 +975,13 @@
         await sb.from('conversas').update({ notas: atual.notas }).eq('id', atual.id);
         const ntxt = document.getElementById('notasTxt');
         if (ntxt) ntxt.value = notasLimpas;
-        toast('Foto de perfil salva');
-        aplicarFotoClienteNoAv(document.getElementById('av'), atual.id, (atual.nome||'?')[0], atual);
-        if (!isCli) render(document.getElementById('busca')?.value || '');
+        toast(isCli ? 'Sua foto foi salva' : 'Foto do contato atualizada');
+        if (isCli) {
+          showChat();
+        } else {
+          aplicarFotoClienteNoAv(document.getElementById('av'), atual.id, (atual.nome||'?')[0], atual);
+          render(document.getElementById('busca')?.value || '');
+        }
       } catch (e) {
         console.error(e);
         toast((e && e.message) || 'Não foi possível salvar a foto', true);
