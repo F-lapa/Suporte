@@ -1345,16 +1345,21 @@
         .on('postgres_changes', { event:'INSERT', schema:'public', table:'mensagens' }, async p => {
           const m = p.new || {};
           if (!m.conversa_id) return;
+          const preview = await textoPreview(m);
+          const row = (conversas||[]).find(x => x.id === m.conversa_id);
+          if (row) row.ultima_msg = preview;
+          if (atual && atual.id === m.conversa_id) atual.ultima_msg = preview;
+          await sb.from('conversas').update({ ultima_msg: preview, updated_at: new Date().toISOString() }).eq('id', m.conversa_id);
+          if (!isCli) render(document.getElementById('busca')?.value || '');
           if (atual && atual.id === m.conversa_id && !document.hidden) return;
-          const conv = (conversas||[]).find(x => x.id === m.conversa_id) || atual;
+          const conv = row || atual;
           const aba = statusAba(conv || {});
           if (!isCli && m.remetente === 'cliente') {
             piscarAba(aba);
-            notificarApp(conv && conv.nome ? conv.nome : 'Cliente', 'Nova mensagem');
-            loadList();
+            notificarApp(conv && conv.nome ? conv.nome : 'Cliente', preview);
           }
           if (isCli && m.remetente === 'agente') {
-            notificarApp('Suporte', 'Nova mensagem do suporte');
+            notificarApp('Suporte', preview);
           }
         })
         .subscribe();
@@ -1575,7 +1580,24 @@
       if (diff <= 3) return 'breve';
       return 'ok';
     }
+    async function textoPreview(m) {
+      const tipo = String((m && m.tipo) || 'texto').toLowerCase();
+      if (tipo === 'imagem' || tipo === 'foto' || tipo === 'image') return '📷 Foto';
+      if (tipo === 'video') return '🎬 Vídeo';
+      if (tipo === 'audio') return '🎤 Áudio';
+      let t = (m && m.texto) || '';
+      if (t.startsWith('enc:') && m.conversa_id) {
+        try { t = await dec(t, m.conversa_id); } catch(e) { t = ''; }
+      }
+      t = String(t||'').replace(/\s+/g,' ').trim();
+      if (!t) return 'Nova mensagem';
+      return t.length > 60 ? t.slice(0,60)+'…' : t;
+    }
     function subCliente(c) {
+      if (c && c.ultima_msg) {
+        const tag = statusAba(c)==='teste' ? 'TESTE • ' : '';
+        return tag + c.ultima_msg;
+      }
       const st = statusVenc(c);
       if (statusAba(c)==='teste') return 'TESTE • ' + (c.whatsapp || 'aguardando');
       if (st === 'atraso') return 'Vencido • ' + fmtData(c.vencimento);
@@ -1903,7 +1925,8 @@
         updateBotBtn();
       }
       const { error } = await sb.from('mensagens').insert([{ conversa_id: atual.id, texto: final, remetente: from, tipo: 'texto', lida: false }]);
-      await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
+      await sb.from('conversas').update({ ultima_msg: t.slice(0,80), updated_at: new Date().toISOString() }).eq('id', atual.id);
+      if (atual) atual.ultima_msg = t.slice(0,80);
       document.getElementById('send').disabled = false; input.focus();
       if (error) { toast(error.message, true); return; }
 
