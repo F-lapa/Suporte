@@ -759,6 +759,7 @@
         <label>Só você vê estas anotações</label>
         <textarea id="notasTxt" placeholder="Observações sobre o cliente..."></textarea>
         <button class="btn-save" onclick="saveNotas()">Salvar cadastro</button>
+        <button class="btn-save" style="background:#25d366;margin-top:8px" onclick="abrirWhatsAppCobranca()">Cobrar no WhatsApp</button>
       </div>
     </div>
   </div>
@@ -767,6 +768,9 @@
     <div class="modal">
       <h3>Novo cliente</h3>
       <input type="text" id="nomeInput" placeholder="Nome do cliente" maxlength="50">
+      <input type="text" id="zapInput" placeholder="WhatsApp com DDD (48 98828-0000)" maxlength="20">
+      <label style="font-size:12px;color:var(--text2)">Vencimento</label>
+      <input type="date" id="vencInput">
       <div class="modal-row">
         <button class="btn-x" onclick="fecharModal()">Cancelar</button>
         <button class="btn-ok" onclick="criar()">Criar</button>
@@ -809,7 +813,10 @@
     // ===== ATENDIMENTO PERSONALIZADO (edite aqui) =====
     const CONFIG = {
       nomeEmpresa: 'Suporte IPTV',
-      nomeBot: 'Suporte'
+      nomeBot: 'Suporte',
+      chavePix: '48988286005',
+      nomePix: 'Fernando Lapa',
+      zapCobranca: '5548988286005'
     };
     const botEstado = {};
 
@@ -1155,6 +1162,7 @@
       }
       conversas = res.data || [];
       render();
+      if (!isCli) avisarVencimentos();
     }
 
     function render(f = '') {
@@ -1180,11 +1188,19 @@
         </div>`;
       }).join('');
     }
+    function avisarVencimentos() {
+      const hoje = (conversas||[]).filter(x => statusVenc(x)==='hoje');
+      const atraso = (conversas||[]).filter(x => statusVenc(x)==='atraso');
+      if (!hoje.length && !atraso.length) return;
+      toast((hoje.length?hoje.length+' vencem HOJE. ':'')+(atraso.length?atraso.length+' em atraso.':''));
+    }
     function filtrar() { render(document.getElementById('busca').value); }
 
     function abrirModal() {
       document.getElementById('modal').classList.add('on');
       document.getElementById('nomeInput').value = '';
+      const z = document.getElementById('zapInput'); if (z) z.value = '';
+      const v = document.getElementById('vencInput'); if (v) v.value = '';
       setTimeout(() => document.getElementById('nomeInput').focus(), 80);
     }
     function fecharModal() { document.getElementById('modal').classList.remove('on'); }
@@ -1192,12 +1208,13 @@
     async function criar() {
       const nome = document.getElementById('nomeInput').value.trim();
       if (!nome) return alert('Digite o nome');
+      const whatsapp = (document.getElementById('zapInput') && document.getElementById('zapInput').value || '').replace(/\D/g,'');
+      const vencimento = (document.getElementById('vencInput') && document.getElementById('vencInput').value) || null;
       const id = Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
-      let res = await sb.from('conversas').insert([{ id, nome, notas: '', updated_at: new Date().toISOString() }]);
-      if (res.error) {
-        // tenta o insert mínimo
-        res = await sb.from('conversas').insert([{ id, nome }]);
-      }
+      let res = await sb.from('conversas').insert([{ id, nome, notas: '', whatsapp, vencimento, updated_at: new Date().toISOString() }]);
+      if (res.error) res = await sb.from('conversas').insert([{ id, nome, whatsapp, vencimento }]);
+      if (res.error) res = await sb.from('conversas').insert([{ id, nome, notas: '', updated_at: new Date().toISOString() }]);
+      if (res.error) res = await sb.from('conversas').insert([{ id, nome }]);
       if (res.error) {
         console.error('criar', res.error);
         toast('Erro ao criar: ' + res.error.message, true);
@@ -1357,6 +1374,20 @@
       if (row) { row.notas = notas; row.whatsapp = whatsapp; row.vencimento = vencimento; }
       atualizarVencInfo(atual);
       render(document.getElementById('busca')?.value || '');
+    }
+    function pixChave(){ return (typeof CONFIG!=='undefined' && CONFIG.chavePix) ? CONFIG.chavePix : '48988286005'; }
+    function msgCobranca(cli) {
+      const nome = (cli && cli.nome) ? cli.nome.split(' ')[0] : 'cliente';
+      const data = cli && cli.vencimento ? fmtData(cli.vencimento) : 'hoje';
+      return 'Olá, '+nome+'! Tudo bem?\n\nSeu plano IPTV vence em '+data+'.\nPara renovar, pague no Pix:\n\nChave Pix: '+pixChave()+'\nNome: Fernando Lapa\n\nDepois de pagar, me avise que eu libero na hora.';
+    }
+    function abrirWhatsAppCobranca(cli) {
+      cli = cli || atual;
+      if (!cli) return;
+      let num = String(cli.whatsapp||'').replace(/\D/g,'');
+      if (!num) { toast('Cadastre o WhatsApp do cliente', true); return; }
+      if (num.length <= 11) num = '55'+num;
+      window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msgCobranca(cli)), '_blank');
     }
     function atualizarVencInfo(c) {
       const el = document.getElementById('vencInfo');
