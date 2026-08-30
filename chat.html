@@ -257,7 +257,8 @@
       border-bottom: 1px solid var(--border); flex-shrink: 0;
       min-height: 68px;
     }
-    .chat-head .av { width: 44px; height: 44px; font-size: 15px; }
+    .chat-head .av { width: 44px; height: 44px; font-size: 15px; cursor: pointer; }
+    body.cli .chat-head .av { pointer-events: auto; }
     .chat-head-info { flex: 1; min-width: 0; }
     .chat-head-info h2 {
       font-size: 15px; font-weight: 600;
@@ -1386,7 +1387,13 @@
         avEl.style.backgroundImage = 'none';
         avEl.style.backgroundColor = 'transparent';
         avEl.style.overflow = 'hidden';
-                // Esconde seta de voltar no cliente
+        avEl.style.cursor = 'pointer';
+        avEl.title = 'Ver foto';
+        avEl.onclick = function() {
+          const im = avEl.querySelector('img');
+          if (im && im.src) openLb(im.src);
+        };
+        // Esconde seta de voltar no cliente
         const backBtn = document.querySelector('.back');
         if (backBtn) backBtn.style.display = 'none';
       } else {
