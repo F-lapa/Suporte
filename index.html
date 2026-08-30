@@ -666,6 +666,10 @@
     .call-ok { background: #22c55e; color:#fff; border:none; padding:14px 22px; border-radius:14px; font-weight:700; cursor:pointer; }
     .call-no { background: #ef4444; color:#fff; border:none; padding:14px 22px; border-radius:14px; font-weight:700; cursor:pointer; }
 
+    .cobrar-box { display:none; position:fixed; inset:0; z-index:420; background:rgba(0,0,0,.55); align-items:center; justify-content:center; padding:18px; }
+    .cobrar-box.on { display:flex; }
+    .cobrar-card { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border2); border-radius:18px; padding:18px; }
+    .cobrar-card textarea { width:100%; min-height:160px; background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:12px; font-family:inherit; font-size:14px; }
     input[type="file"] { display: none; }
   </style>
 
@@ -765,6 +769,18 @@
     </div>
   </div>
 
+  <div class="cobrar-box" id="cobrarBox">
+    <div class="cobrar-card">
+      <h3>Enviar cobrança</h3>
+      <p style="color:var(--text2);font-size:13px;margin:8px 0 12px">Número: <b id="cobrarNum"></b></p>
+      <textarea id="cobrarMsg"></textarea>
+      <div class="modal-row" style="margin-top:12px">
+        <button class="btn-x" onclick="fecharCobranca()">Fechar</button>
+        <button class="btn-ok" onclick="copiarCobranca()">Copiar mensagem</button>
+      </div>
+      <p style="color:var(--text3);font-size:12px;margin-top:10px">Abra o WhatsApp, cole a mensagem e envie para esse número.</p>
+    </div>
+  </div>
   <div class="overlay" id="modal">
     <div class="modal">
       <h3>Novo cliente</h3>
@@ -1390,8 +1406,25 @@
       let num = String(cli.whatsapp||'').replace(/\D/g,'');
       if (!num) { toast('Cadastre o WhatsApp do cliente', true); return; }
       if (num.length <= 11) num = '55'+num;
-      window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msgCobranca(cli)), '_blank');
+      const texto = msgCobranca(cli);
+      try { navigator.clipboard.writeText(texto); } catch(e) {}
+      const box = document.getElementById('cobrarBox');
+      if (box) {
+        document.getElementById('cobrarNum').textContent = '+'+num;
+        document.getElementById('cobrarMsg').value = texto;
+        box.classList.add('on');
+      }
+      const link = 'https://api.whatsapp.com/send?phone='+num+'&text='+encodeURIComponent(texto);
+      const a = document.createElement('a');
+      a.href = link; a.target = '_blank'; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Abrindo WhatsApp...');
     }
+    function copiarCobranca() {
+      const t = document.getElementById('cobrarMsg').value;
+      navigator.clipboard.writeText(t).then(()=>toast('Mensagem copiada')).catch(()=>toast('Selecione o texto e copie'));
+    }
+    function fecharCobranca(){ document.getElementById('cobrarBox').classList.remove('on'); }
     function atualizarVencInfo(c) {
       const el = document.getElementById('vencInfo');
       if (!el) return;
