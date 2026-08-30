@@ -1938,6 +1938,68 @@
       return btoa(bin);
     }
 
+
+    async function comprimirVideo(file, onProg) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        video.src = url;
+        video.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não abriu o vídeo')); };
+        video.onloadedmetadata = async () => {
+          try {
+            const maxW = 480;
+            let w = video.videoWidth || 640, h = video.videoHeight || 360;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            if (h % 2) h--; if (w % 2) w--;
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            const fps = 12;
+            const vStream = canvas.captureStream(fps);
+            let mix = vStream;
+            try {
+              const raw = video.captureStream();
+              const aTrack = raw.getAudioTracks()[0];
+              if (aTrack) mix = new MediaStream([vStream.getVideoTracks()[0], aTrack]);
+            } catch(e) {}
+            let mime = '';
+            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) mime = 'video/webm;codecs=vp8,opus';
+            else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mime = 'video/webm;codecs=vp8';
+            else if (MediaRecorder.isTypeSupported('video/webm')) mime = 'video/webm';
+            else if (MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
+            const rec = mime ? new MediaRecorder(mix, { mimeType: mime, videoBitsPerSecond: 350000, audioBitsPerSecond: 32000 })
+                             : new MediaRecorder(mix, { videoBitsPerSecond: 350000 });
+            const chunks = [];
+            rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+            rec.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Falha ao comprimir')); };
+            rec.onstop = () => {
+              URL.revokeObjectURL(url);
+              const out = new Blob(chunks, { type: rec.mimeType || 'video/webm' });
+              resolve(out.size > 400 ? out : file);
+            };
+            rec.start(200);
+            await video.play();
+            const draw = () => {
+              if (video.ended || video.paused) {
+                rec.stop();
+                return;
+              }
+              ctx.drawImage(video, 0, 0, w, h);
+              if (onProg && video.duration) onProg(video.currentTime / video.duration);
+              requestAnimationFrame(draw);
+            };
+            draw();
+          } catch(e) {
+            URL.revokeObjectURL(url);
+            reject(e);
+          }
+        };
+      });
+    }
+
     async function comprimirImagem(blob) {
       return new Promise((resolve) => {
         const url = URL.createObjectURL(blob);
@@ -2142,7 +2204,7 @@
     async function sendFile(ev) {
       const file = ev.target.files?.[0]; ev.target.value = '';
       if (!file || !atual) return;
-      if (file.size > 50*1024*1024) return toast('Máx 50MB', true);
+      if (file.size > 200*1024*1024) return toast('Vídeo grande demais (máx 200MB)', true);
       const toastEl = document.createElement('div'); toastEl.className = 'uploading'; toastEl.textContent = 'Enviando...';
       document.body.appendChild(toastEl);
       try {
@@ -2160,8 +2222,17 @@
           toastEl.textContent = 'Otimizando foto...';
           up = await comprimirImagem(file);
           ctF = 'image/jpeg';
+        } else if (tipo === 'video') {
+          toastEl.textContent = 'Comprimindo vídeo...';
+          try {
+            up = await comprimirVideo(file, p => { toastEl.textContent = 'Comprimindo vídeo ' + Math.round(p*100) + '%'; });
+            ctF = up.type || 'video/webm';
+          } catch(e) {
+            if (file.size > 50*1024*1024) throw new Error('Não deu para comprimir. Envie um vídeo menor.');
+            up = file;
+          }
         }
-        const ext2 = tipo === 'imagem' ? 'jpg' : ext;
+        const ext2 = tipo === 'imagem' ? 'jpg' : (tipo === 'video' ? 'webm' : ext);
         let nome = atual.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext2;
         let nomeF = nome;
         const from = isCli ? 'cliente' : 'agente';
