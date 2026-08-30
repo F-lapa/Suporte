@@ -617,7 +617,6 @@
     }
 
     @media (max-width: 420px) {
-      body.cli .mbtn:nth-of-type(2),
       body.cli .mbtn:nth-of-type(3),
       body.cli .mbtn:nth-of-type(5) {
         display: none;
@@ -733,6 +732,7 @@
             <button class="hbtn" id="btnNotas" onclick="toggleNotas()" title="Notas">📝 <span class="lbl">Notas</span></button>
             <button class="hbtn" id="btnCall" onclick="iniciarChamada()" title="Chamada">📹 <span class="lbl">Chamada</span></button>
             <button class="hbtn" id="btnCobrar" onclick="abrirWhatsAppCobranca()" title="Cobrança">💰 <span class="lbl">Cobrança</span></button>
+            <button class="hbtn" id="btnRenovar" onclick="marcarRenovado()" title="Renovado">✅ <span class="lbl">Renovado</span></button>
             <button class="hbtn" id="btnLink" onclick="copiarLink()" title="Link">🔗 <span class="lbl">Link</span></button>
           </div>
         </div>
@@ -1108,6 +1108,8 @@
         if (btnCall) btnCall.style.display = 'none';
         const btnCobrar = document.getElementById('btnCobrar');
         if (btnCobrar) btnCobrar.style.display = 'none';
+        const btnRenovar = document.getElementById('btnRenovar');
+        if (btnRenovar) btnRenovar.style.display = 'none';
         document.body.classList.add('cli');
         protect();
         openById(sala);
@@ -1398,7 +1400,30 @@
     function msgCobranca(cli) {
       const nome = (cli && cli.nome) ? cli.nome.split(' ')[0] : 'cliente';
       const data = cli && cli.vencimento ? fmtData(cli.vencimento) : 'hoje';
-      return 'Olá, '+nome+'! Tudo bem?\n\nSeu plano IPTV vence em '+data+'.\nPara renovar, pague no Pix:\n\nChave Pix: '+pixChave()+'\nNome: Fernando Lapa\n\nDepois de pagar, me avise que eu libero na hora.';
+      return 'Oi, '+nome+'! 😊\n\nPassando pra te avisar com carinho que seu plano IPTV vence em *'+data+'*.\n\nPra você não ficar sem seus canais, a renovação é simples:\n\n💚 *Pix*\nChave: '+pixChave()+'\nNome: Fernando Lapa\n\nAssim que o pagamento cair, me chama aqui que eu libero na hora e deixo tudo certinho pra você.\n\nQualquer dúvida, estou por aqui. Obrigado pela confiança! 🙏';
+    }
+    async function marcarRenovado() {
+      if (!atual || isCli) return;
+      const d = new Date();
+      d.setDate(d.getDate() + 30);
+      const venc = d.toISOString().slice(0,10);
+      const res = await sb.from('conversas').update({ vencimento: venc, updated_at: new Date().toISOString() }).eq('id', atual.id);
+      if (res.error) { toast('Rode o SQL do vencimento no Supabase', true); return; }
+      atual.vencimento = venc;
+      const row = conversas.find(x => x.id === atual.id);
+      if (row) row.vencimento = venc;
+      const vencEl = document.getElementById('vencTxt');
+      if (vencEl) vencEl.value = venc;
+      atualizarVencInfo(atual);
+      render(document.getElementById('busca')?.value || '');
+      await sb.from('mensagens').insert([{
+        conversa_id: atual.id,
+        texto: 'Pagamento confirmado! Seu plano foi renovado até '+fmtData(venc)+'. Qualquer coisa, é só chamar. 💚',
+        remetente: 'agente',
+        tipo: 'texto',
+        lida: false
+      }]);
+      toast('Renovado até '+fmtData(venc));
     }
     function abrirWhatsAppCobranca(cli) {
       cli = cli || atual;
@@ -1464,7 +1489,10 @@
               await sb.from('mensagens').update({ lida: true }).eq('id', p.new.id);
             }
             if (p.new.remetente === 'cliente' && !isCli) {
-              chamarBot(p.new.texto || '');
+              const tp = (p.new.tipo||'texto').toLowerCase();
+              if (tp === 'imagem' || tp === 'foto' || tp === 'image') chamarBot('[foto]');
+              else if (tp === 'video') chamarBot('[video]');
+              else chamarBot(p.new.texto || '');
             }
           })
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
@@ -1736,6 +1764,8 @@
       t = norm(t);
       if (/^(0|menu|voltar|inicio)$/.test(t)) return '0';
       if (/^[1-7]$/.test(t)) return t;
+      if (t.includes('[foto]') || t.includes('[imagem]')) return 'foto';
+      if (t.includes('[video]')) return 'video';
       if (acharApp(t)) return 'appnome';
       if (/(atendente|humano|pessoa real|operador|falar com alguem)/.test(t)) return '7';
       if (/(renov|pagar|pix|boleto|preco|plano|vencer|vencid|mensalidade|acabou o prazo)/.test(t)) return '6';
@@ -1758,6 +1788,14 @@
       const t = norm(texto);
       const app = acharApp(texto);
 
+      if (tema === 'foto') {
+        botEstado[atual.id] = 'midia';
+        return 'Recebi sua foto, obrigado.\n\nOlha pra mim o que aparece nela:\n• Tela preta\n• Pedindo login/senha\n• Lista / URL\n• Mensagem de erro\n• App na loja\n\nPode escrever o que você está vendo que eu te digo o próximo passo.';
+      }
+      if (tema === 'video') {
+        botEstado[atual.id] = 'midia';
+        return 'Recebi o vídeo.\n\nMe confirma o que acontece nele: o canal trava, fica preto, não abre o app ou pede login?\nCom isso eu te oriento certinho.';
+      }
       if (tema === 'appnome' && app) {
         botEstado[atual.id] = 'lista';
         return passoApp(app);
@@ -1943,6 +1981,9 @@
         if (me) throw new Error(me.message);
         await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
         toast('Enviado!');
+        if (from === 'cliente' && (tipo === 'imagem' || tipo === 'video' || tipo === 'foto')) {
+          await chamarBot(tipo === 'video' ? '[video]' : '[foto]');
+        }
       } catch(e) { toast(e.message || 'Erro', true); }
       finally { toastEl.remove(); }
     }
