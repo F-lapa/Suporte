@@ -1446,8 +1446,148 @@
 
 
 
+
     function menuTexto() {
-      return 'Olá! Sou o suporte IPTV.\n\nComo posso te ajudar?\n\n1  Instalação do app\n2  Colocar / atualizar a lista\n3  Canal travando ou buffer\n4  Tela preta ou sem som\n5  Problema de login\n6  Renovação\n7  Falar com um atendente\n\nPode digitar o número ou escrever o problema.';
+      return 'Olá! Sou o suporte IPTV.\n\nComo posso te ajudar?\n\n1  Instalação do app\n2  Colocar / atualizar a lista\n3  Canal travando ou buffer\n4  Tela preta ou sem som\n5  Problema de login\n6  Renovação\n7  Falar com um atendente\n\nPode digitar o número, o nome do app ou o problema.';
+    }
+
+
+    const APPS = {
+      'tivimate':'TiviMate|TV Box|Settings → Playlists → Add playlist → M3U URL. Cole a lista e salve.',
+      'tivi mate':'TiviMate|TV Box|Settings → Playlists → Add playlist → M3U URL.',
+      'ott navigator':'OTT Navigator|TV Box / Android|Add provider → Xtream ou M3U. Cole URL, user e senha.',
+      'ottnavigator':'OTT Navigator|TV Box / Android|Add provider → Xtream ou M3U.',
+      'smarters player lite':'Smarters Player Lite|Celular e Box|Add user → Xtream ou M3U. Salve.',
+      'smarters':'IPTV Smarters|Celular, Box e TV|Add User → Xtream Codes ou M3U. URL + user + senha.',
+      'iptv smarters':'IPTV Smarters|Celular, Box e TV|Add User → Xtream ou M3U URL. Save.',
+      'ibo player':'IBO Player|Smart TV e Box|Add Playlist → URL, QR ou MAC. Cole a lista.',
+      'ibosol':'IBO Player|Smart TV|Add Playlist → URL / QR / MAC.',
+      'ibo':'IBO Player|Smart TV e Box|Add Playlist → URL, QR ou MAC.',
+      'duplex play':'Duplex Play|Smart TV e Box|Settings → Playlists → Add. Cole URL ou Xtream.',
+      'duplex':'Duplex IPTV|Smart TV e Box|Settings → Playlists → Add playlist.',
+      'duo':'Duplex / Duo|Smart TV e Box|Settings → Playlists → Add. Cole a lista.',
+      'smart up':'Smart UP|Smart TV|Add playlist / login. Cole a lista ou os dados enviados.',
+      'smartup':'Smart UP|Smart TV|Add playlist / login e salve.',
+      'ssiptv':'SS IPTV|Samsung / LG|Anote o código da TV e cadastre a lista em ssiptv.net.',
+      'ss iptv':'SS IPTV|Samsung / LG|Cadastre a lista no site ssiptv.net com o código da TV.',
+      'smart iptv':'Smart IPTV|Samsung / LG|Anote o MAC e cadastre a lista em siptv.eu.',
+      'siptv':'Smart IPTV|Samsung / LG|MAC do app + cadastro em siptv.eu.',
+      'netiptv':'NetIPTV|Smart TV|Add playlist → cole a URL ou use o código/QR.',
+      'net iptv':'NetIPTV|Smart TV|Add playlist → URL ou código.',
+      'setiptv':'SET IPTV|Smart TV|Add playlist por URL ou código da TV.',
+      'set iptv':'SET IPTV|Smart TV|Add playlist por URL ou código.',
+      'xciptv':'XCIPTV|TV Box / Android|Add user → Xtream. URL + user + senha.',
+      'xc iptv':'XCIPTV|TV Box / Android|Add user → Xtream Codes.',
+      'iptv extreme':'IPTV Extreme|Celular Android|Menu → Add playlist → From URL ou Xtream.',
+      'extreme':'IPTV Extreme|Celular Android|Add playlist → URL ou Xtream.',
+      'gse smart':'GSE Smart IPTV|iPhone / Android|+ → Xtream ou M3U. Add.',
+      'gse':'GSE Smart IPTV|iPhone / Android|+ → Xtream Codes ou M3U.',
+      'perfect player':'Perfect Player|TV Box / Android|Settings → Playlists → Add → URL M3U.',
+      'televizo':'Televizo|Android / Box|Playlists → + → URL. Cole o M3U.',
+      'lazy iptv':'Lazy IPTV|Android|+ Playlist → URL M3U.',
+      'lazy':'Lazy IPTV|Android|+ Playlist → URL.',
+      'ott player':'OTT Player|TV e celular|Providers → Add → M3U ou Xtream.',
+      'sparkle tv':'Sparkle TV|TV Box|Add playlist → M3U URL.',
+      'sparkle':'Sparkle TV|TV Box|Add playlist → M3U.',
+      'flix iptv':'Flix IPTV|Android / Box|Add list → URL ou Xtream.',
+      'flix':'Flix IPTV|Android / Box|Add list → URL ou Xtream.',
+      'kodi':'Kodi|TV Box|Add-on PVR IPTV Simple Client. Configure a URL M3U.',
+      'vlc':'VLC|Celular e PC|Open Network Stream / Rede. Cole a playlist M3U.',
+      'downloader':'Downloader|Fire Stick / Box|Só baixa APK. Depois instale TiviMate, Smarters ou IBO e cole a lista lá.',
+      'purple player':'Purple Player|TV Box|Add playlist → M3U ou Xtream.',
+      'purple':'Purple Player|TV Box|Add playlist → M3U ou Xtream.',
+      'myth+':'Myth+ / MythTV Player|Android|Add playlist M3U ou Xtream.',
+      'myth':'Myth+|Android|Add playlist M3U.',
+      'nanomid':'Nanomid|Android / Box|Add playlist → URL ou Xtream.',
+      'rbtv':'RB TV / Red Box|Android|Add list → cole URL ou dados Xtream.',
+      'red box':'Red Box TV|Android|Add list → URL ou Xtream.',
+      'smarters pro':'Smarters Pro|Celular e Box|Add user → Xtream ou M3U.',
+      'iptv player':'IPTV Player|Celular|Add playlist → From URL. Cole o M3U.',
+      'flex iptv':'Flex IPTV|Android|Add playlist → URL.',
+      'hot iptv':'HOT IPTV|Android / iOS|Add playlist → M3U ou portal Xtream.',
+      'hotiptv':'HOT IPTV|Android / iOS|Add playlist → M3U ou Xtream.',
+      'smarters iptv':'IPTV Smarters|Todos|Add User → Xtream ou M3U.',
+      'smartplus':'Smart Plus|Smart TV|Add playlist / login com URL ou código.',
+      'smart plus':'Smart Plus|Smart TV|Add playlist / login.',
+      'duplexpro':'Duplex Pro|TV e Box|Playlists → Add → URL ou Xtream.',
+      'orion':'Orion Player|Android|Add playlist M3U.',
+      'xstreamity':'Xstreamity|Kodi / Box|No Kodi, configure o add-on Xstreamity com URL, user e senha.',
+      'pvr iptv':'PVR IPTV Simple|Kodi|Kodi → PVR IPTV Simple Client → URL da lista.',
+      'prog tv':'ProgTV|Android / Box|Add playlist M3U.',
+      'progtv':'ProgTV|Android / Box|Add playlist M3U.',
+      'ottplay':'OTTPlay Foss|Android|Add provider → M3U ou Xtream.',
+      'ott play':'OTTPlay|Android|Add provider → M3U ou Xtream.',
+      'flix iptv pro':'Flix IPTV Pro|Android|Add list → URL ou Xtream.',
+      'max player':'Max Player|Android|Add playlist → URL.',
+      'mega iptv':'Mega IPTV|Android / TV|Add list → URL ou código.',
+      'family player':'Family Player|Android|Add playlist M3U / Xtream.',
+      'bob player':'Bob Player|Android / Box|Add playlist → URL ou Xtream.',
+      'all player':'ALLPlayer|Android / TV|Open URL / playlist M3U.',
+      'just player':'Just Player|Android|Open playlist URL.',
+      'cloud stream':'CloudStream|Android|É app de links. Para IPTV use TiviMate, Smarters ou IBO.',
+      'flixvision':'FlixVision|Android|Add list se o app pedir URL.',
+      'tivimate premium':'TiviMate|TV Box|Settings → Playlists → Add → M3U URL.',
+      'smarters 4k':'Smarters 4K|Box / TV|Add user → Xtream ou M3U.',
+      'iptv smarters pro':'IPTV Smarters Pro|Celular e Box|Add User → Xtream ou M3U.',
+      'player xtream':'Player Xtream|Android|Add user Xtream: URL, user, senha.',
+      'xtream player':'Xtream Player|Android|Add user → URL + user + senha.',
+      'iptv extreme pro':'IPTV Extreme Pro|Android|Add playlist → URL ou Xtream.',
+      'gse iptv':'GSE IPTV|iPhone / Android|+ → Xtream ou M3U.',
+      'smartstb':'Smart STB|Smart TV / Mag|Use a URL/portal e MAC do aparelho.',
+      'smart stb':'Smart STB|Smart TV / Mag|Portal + MAC do aparelho.',
+      'stalker':'Stalker / Ministra|Box MAG|Portal URL + MAC. Em app Android use OTT Navigator modo Stalker.',
+      'ministra':'Ministra / Stalker|MAG / Box|Portal + MAC.',
+      'mag':'MAG / Stalker|TV Box MAG|Portal do provedor + MAC do aparelho.',
+      'formuler':'Formuler|Box Formuler|MyTVOnline → add portal/lista do provedor.',
+      'mytvonline':'MyTVOnline|Formuler|Add portal ou playlist do provedor.',
+      'dream player':'Dream Player IPTV|Android|Add playlist M3U / Xtream.',
+      'fast player':'Fast Player|Android|Add URL da lista.',
+      'hawk player':'Hawk Player|Android|Add playlist M3U.',
+      'nova player':'Nova Player|Android|Add playlist URL.',
+      'raveon':'RaveOn IPTV|Android|Add list → URL ou Xtream.',
+      'solitaire':'Solitaire IPTV|Android|Add playlist URL.',
+      'union iptv':'Union IPTV|Android|Add list URL.',
+      'vortex':'Vortex IPTV|Android|Add playlist M3U.',
+      'zoom player':'Zoom Player|Android|Add playlist URL.',
+      'iptv online':'IPTV Online|Android / iOS|Add playlist M3U.',
+      'm3u player':'M3U Player|Celular|Open file/URL M3U.',
+      'playlist loader':'Playlist Loader|Android|Load M3U URL.',
+      'simple tv':'Simple TV|Android|Add playlist URL.',
+      'tiny player':'Tiny Player|Android|Open M3U URL.',
+      'video player':'Player genérico|Android|Melhor trocar para TiviMate, Smarters ou IBO.',
+      'samsung':'Smart IPTV / SS IPTV / IBO|Samsung TV|Na Samsung use IBO, SS IPTV ou Smart IPTV.',
+      'lg':'SS IPTV / IBO / NetIPTV|LG TV|Na LG use IBO, SS IPTV ou NetIPTV.',
+      'tcl':'IBO / NetIPTV / Smarters|TCL|Instale IBO Player ou NetIPTV na loja da TV.',
+      'philco':'IBO / NetIPTV|Philco|Busque IBO Player ou NetIPTV na loja.',
+      'roku':'Não é o ideal|Roku|Roku tem poucos apps IPTV. Prefira Box ou Smart com IBO/Smarters.',
+      'fire stick':'Fire Stick|Amazon|Instale Downloader → baixe TiviMate ou Smarters → cole a lista no player.',
+      'firestick':'Fire Stick|Amazon|Downloader → TiviMate ou Smarters → cole a lista.',
+      'chromecast':'Chromecast|Google|Melhor usar o celular com Smarters/GSE e enviar para a TV.',
+      'apple tv':'Apple TV|Apple|Use GSE Smart IPTV ou Smarters, se disponível, e cole Xtream/M3U.',
+      'ios':'GSE / Smarters / HOT IPTV|iPhone|No iPhone o mais comum é GSE Smart IPTV.',
+      'iphone':'GSE Smart IPTV|iPhone|+ → Xtream Codes ou M3U.'
+    };
+
+    function parseApp(raw) {
+      const p = String(raw).split('|');
+      return { nome:p[0], onde:p[1], passo:p[2] };
+    }
+
+    function acharApp(texto) {
+      const t = norm(texto);
+      const chaves = Object.keys(APPS).sort((a,b)=>b.length-a.length);
+      for (const k of chaves) if (t.includes(k)) return parseApp(APPS[k]);
+      return null;
+    }
+
+    function listaApps(tipo) {
+      if (tipo === 'cel') return 'Apps de celular que eu conheço:\n\nAndroid: Smarters, Extreme, OTT Navigator, XCIPTV, Televizo, Lazy, Flix, HOT IPTV, GSE, TiviMate (se for Android).\niPhone: GSE Smart IPTV, Smarters, HOT IPTV.\n\nEscreve o nome do seu.';
+      if (tipo === 'tv') return 'Apps de Smart TV que eu conheço:\n\nIBO Player, SS IPTV, Smart IPTV, NetIPTV, SET IPTV, Duplex, Smart UP, Smarters, Smart Plus.\nSamsung/LG ainda usam SS IPTV e Smart IPTV (MAC).\n\nQual aparece na sua TV?';
+      return 'Apps de TV Box / Fire Stick que eu conheço:\n\nTiviMate, OTT Navigator, Smarters, XCIPTV, IBO, Perfect Player, Sparkle, Purple, Televizo, Downloader (só baixa o APK), Stalker/MAG, Formuler.\n\nQual você instalou?';
+    }
+
+    function passoApp(app) {
+      return app.nome + ' (' + app.onde + ')\n\n' + app.passo + '\n\nDepois de salvar, fecha o app e abre de novo. Se não carregar, me manda o que apareceu na tela.';
     }
 
     function norm(s) {
@@ -1458,111 +1598,71 @@
       t = norm(t);
       if (/^(0|menu|voltar|inicio)$/.test(t)) return '0';
       if (/^[1-7]$/.test(t)) return t;
-      if (/(atendente|humano|pessoa|operador|suporte humano)/.test(t)) return '7';
+      if (acharApp(t)) return 'appnome';
+      if (/(atendente|humano|pessoa|operador)/.test(t)) return '7';
       if (/(renov|pagar|pagamento|pix|preco|plano|vencer|vencid|mensalidade)/.test(t)) return '6';
-      if (/(instal|baixar|instalar|apk|configurar|nao sei usar|como usa)/.test(t)) return '1';
-      if (/(lista|url|dns|portal|playlist|codigo|xtream)/.test(t)) return '2';
+      if (/(instal|baixar|instalar|apk|configurar|como usa)/.test(t)) return '1';
+      if (/(lista|url|dns|portal|playlist|xtream|codigo)/.test(t)) return '2';
       if (/(buffer|trav|lento|carreg|picot|congel)/.test(t)) return '3';
       if (/(tela preta|preto|sem imagem|sem som|nao abre|nao carrega|nao funciona|offline)/.test(t)) return '4';
       if (/(login|senha|usuario|entrar|acesso|invalido)/.test(t)) return '5';
-      if (/(tv ?box|box|mxq|tvbox)/.test(t)) return 'box';
+      if (/(tv ?box|box|mxq|tvbox|fire stick|firestick)/.test(t)) return 'box';
       if (/(celular|android|iphone|telefone)/.test(t)) return 'cel';
       if (/(smart ?tv|samsung|lg |tcl|philco|aoc)/.test(t)) return 'tv';
-      if (/(ibo|duo|smart up|smarters|ott|player)/.test(t)) return 'app';
       if (/(sim|foi|melhorou|deu certo|resolv|ok|certo)/.test(t)) return 'sim';
       if (/(nao|ainda|continua|mesmo|nao deu|piorou)/.test(t)) return 'nao';
       if (/(oi+|ola|bom dia|boa tarde|boa noite|eai|opa|menu)/.test(t)) return 'oi';
       return '';
     }
 
-    function respostaTema(tema, texto, estado, historico) {
+    function respostaTema(tema, texto, estado) {
       const t = norm(texto);
+      const app = acharApp(texto);
 
-      if (tema === '0' || tema === 'oi') {
-        botEstado[atual.id] = 'menu';
-        return menuTexto();
-      }
-      if (tema === '1') {
-        botEstado[atual.id] = 'instal';
-        return 'Vamos instalar.\n\nEm qual aparelho você vai usar?\n\n• TV Box\n• Celular\n• Smart TV\n\nPode escrever o nome do aparelho.';
-      }
-      if (tema === '2') {
+      if (tema === 'appnome' && app) {
         botEstado[atual.id] = 'lista';
-        return 'Para a lista eu preciso saber o app.\n\nQual você usa?\nIBO Player, Duo, Smart UP, Smarters ou outro?';
+        return passoApp(app);
       }
-      if (tema === '3') {
-        botEstado[atual.id] = 'buffer';
-        return 'Canal travando geralmente é internet ou servidor.\n\nFaz esse teste rápido:\n1. Abre outro canal\n2. Se o outro for, o problema é daquele canal\n3. Se todos travam, reinicia o app e o aparelho\n\nMe diz o que aconteceu depois disso.';
-      }
-      if (tema === '4') {
-        botEstado[atual.id] = 'preta';
-        return 'Tela preta a gente descobre assim:\n\nEstá preto em TODOS os canais ou só em alguns?\n\nIsso muda o conserto.';
-      }
-      if (tema === '5') {
-        botEstado[atual.id] = 'login';
-        return 'No login, usuário e senha têm que ir sem espaço.\n\nO que aparece na tela?\n• Senha inválida\n• Vencido / expired\n• Não conecta\n\nPode mandar a frase do erro.';
-      }
-      if (tema === '6') {
-        botEstado[atual.id] = 'renov';
-        return 'Para renovar me manda:\n\n1. Seu nome\n2. O app que usa\n\nAí um atendente confirma o valor e envia o Pix.';
-      }
-      if (tema === '7') {
-        botEstado[atual.id] = 'humano';
-        return 'Pronto, vou chamar um atendente.\nHorário: 08:00 às 23:00.\n\nEnquanto isso, escreve o problema com o máximo de detalhe.';
-      }
+      if (tema === '0' || tema === 'oi') { botEstado[atual.id] = 'menu'; return menuTexto(); }
+      if (tema === '1') { botEstado[atual.id] = 'instal'; return 'Vamos instalar.\n\nQual aparelho?\n• Celular\n• Smart TV\n• TV Box\n\nPode escrever o nome.'; }
+      if (tema === '2') { botEstado[atual.id] = 'lista'; return 'Para colocar a lista, me fala o app.\n\nCelular: Smarters, GSE, Extreme\nTV: IBO, SS IPTV, NetIPTV, Duo\nBox: TiviMate, OTT Navigator, Smarters\n\nQual é o seu?'; }
+      if (tema === '3') { botEstado[atual.id] = 'buffer'; return 'Canal travando:\n1. Teste outro canal\n2. Se todos travam, reinicie o app\n3. Reinicie o aparelho\n\nQual app você usa?'; }
+      if (tema === '4') { botEstado[atual.id] = 'preta'; return 'Tela preta: está em TODOS os canais ou só em alguns?\nMe fala também o app (IBO, TiviMate, Smarters...).'; }
+      if (tema === '5') { botEstado[atual.id] = 'login'; return 'Login: usuário e senha sem espaço.\nO que aparece? Inválido, vencido ou não conecta?\nQual app?'; }
+      if (tema === '6') { botEstado[atual.id] = 'renov'; return 'Para renovar me manda nome e o app que usa.\nUm atendente confirma o valor e envia o Pix.'; }
+      if (tema === '7') { botEstado[atual.id] = 'humano'; return 'Vou chamar um atendente (08:00 às 23:00).\nPode ir escrevendo aparelho, app e o erro.'; }
 
-      if (tema === 'box' || (estado === 'instal' && /box/.test(t))) {
-        botEstado[atual.id] = 'instal';
-        return 'TV Box, passo a passo:\n\n1. Abra o app\n2. Procure Adicionar lista / URL / Playlist\n3. Cole o link que você recebeu\n4. Salve e espere carregar\n\nConseguiu achar essa opção? Se o app for outro, me fala o nome.';
-      }
-      if (tema === 'cel' || (estado === 'instal' && /(celular|android|iphone)/.test(t))) {
-        botEstado[atual.id] = 'instal';
-        return 'No celular:\n\n1. Instale o APK\n2. Abra o app\n3. Em Lista ou URL, cole o link\n4. Salve\n\nQual app você instalou?';
-      }
-      if (tema === 'tv' || (estado === 'instal' && /(smart|samsung|lg|tcl)/.test(t))) {
-        botEstado[atual.id] = 'instal';
-        return 'Na Smart TV:\n\n1. Abra o app\n2. Entre em Add Playlist / URL\n3. Cole a lista\n4. Salve\n\nQual marca da TV e qual app?';
-      }
-      if (tema === 'app') {
-        botEstado[atual.id] = estado === 'menu' ? 'lista' : (estado || 'lista');
-        return 'Ok. No app, procure a opção Lista, URL, Playlist ou Xtream.\nCola o link lá e salva.\n\nSe não achar, me descreve as primeiras telas que aparecem.';
-      }
+      if (tema === 'box') { botEstado[atual.id] = 'instal'; return listaApps('box'); }
+      if (tema === 'cel') { botEstado[atual.id] = 'instal'; return listaApps('cel'); }
+      if (tema === 'tv') { botEstado[atual.id] = 'instal'; return listaApps('tv'); }
 
       if (tema === 'sim') {
-        if (estado === 'buffer') return 'Ótimo. Se travar de novo, testa outro servidor/canal e me avisa o nome do canal.';
-        if (estado === 'instal') return 'Perfeito. Se os canais não aparecerem, o próximo passo é atualizar a lista. Quer que eu te oriente nisso?';
-        if (estado === 'preta') return 'Se voltou a imagem, pronto. Se algum canal específico ficar preto, me fala o nome dele.';
-        if (estado === 'login') return 'Show. Se cair de novo, me manda a mensagem de erro.';
+        if (estado === 'buffer') return 'Bom. Se travar de novo, me fala o app e o nome do canal.';
+        if (estado === 'instal') return 'Perfeito. Se os canais não aparecerem, me fala o app que eu te mostro onde colar a lista.';
         return 'Beleza. Se precisar de mais alguma coisa, é só escrever.';
       }
       if (tema === 'nao') {
-        if (estado === 'buffer') return 'Então não é só um canal. Reinicia o aparelho e testa a internet em outro app (YouTube, por exemplo).\nA internet está normal?';
-        if (estado === 'instal') return 'Sem problema. Me diz o que aparece na tela agora, ou o nome do app, que eu te guio no próximo clique.';
-        if (estado === 'preta') return 'Se continua preto, quase sempre é lista ou login vencido. Seu plano está em dia?';
-        if (estado === 'login') return 'Aí pode ser senha errada ou conta vencida. Me confirma se o plano venceu.';
-        return 'Entendi. Me explica com outras palavras o que está acontecendo no aparelho.';
+        if (estado === 'buffer') return 'Então testa a internet no YouTube. Se o YouTube for bem, me fala o app que a gente troca a forma da lista (M3U ou Xtream).';
+        if (estado === 'instal') return 'Sem problema. Me diz o nome do app que aparece na tela.';
+        if (estado === 'preta') return 'Se continua preto, quase sempre é lista ou plano vencido. Qual app e o plano está em dia?';
+        return 'Me explica com outras palavras: aparelho, app e o que a tela mostra.';
       }
 
-      if (estado === 'instal') return 'Me confirma só isto: é TV Box, celular ou Smart TV? Com isso eu te mando o passo certo, sem enrolação.';
-      if (estado === 'lista') return 'Me fala o nome do app. Cada um esconde a lista num lugar diferente.';
-      if (estado === 'buffer') return 'Me responde em uma frase: travou em um canal só ou em todos?';
-      if (estado === 'preta') return 'Me responde: todos os canais pretos ou só alguns? E o plano está vencido?';
-      if (estado === 'login') return 'Copia aqui o texto do erro. Com a mensagem eu sei se é senha ou vencimento.';
-      if (estado === 'renov') return 'Pode mandar nome e app que o atendente já resolve o Pix.';
-      if (estado === 'humano') return 'Já está na fila do atendente. Se quiser, vai adiantando: aparelho, app e o erro da tela.';
-
-      // texto livre sem tema claro
-      if (t.length > 12) {
-        botEstado[atual.id] = 'livre';
-        return 'Entendi. Para eu te ajudar certo, me diz duas coisas:\n\n1. Qual aparelho (TV Box, celular ou TV)\n2. O que acontece agora, em uma frase\n\nCom isso eu já te passo o próximo passo.';
-      }
-      return 'Pode escrever o problema ou escolher:\n1 Instalação  ·  2 Lista  ·  3 Travando  ·  4 Tela preta  ·  5 Login  ·  6 Renovação  ·  7 Atendente';
+      if (estado === 'instal') return listaApps('box') + '\n\nSe for celular ou Smart TV, escreve isso que eu listo os apps certos.';
+      if (estado === 'lista') return 'Me manda só o nome do app. Exemplo: TiviMate, IBO, Smarters, SS IPTV...';
+      if (estado === 'buffer') return 'Travou em um canal só ou em todos? E qual é o app?';
+      if (estado === 'preta') return 'Todos pretos ou só alguns? Qual app?';
+      if (estado === 'login') return 'Copia o erro da tela e o nome do app.';
+      if (estado === 'renov') return 'Manda nome e app para o atendente fechar o Pix.';
+      if (estado === 'humano') return 'Já está na fila. Adianta: aparelho, app e erro.';
+      if (t.length > 12) return 'Entendi. Me diz o aparelho (celular, TV ou Box) e o nome do app que eu te passo o passo certo.';
+      return 'Pode escrever o app (ex: IBO, TiviMate) ou escolher 1 a 7.';
     }
 
     function respostaLocal(texto, historico) {
       const estado = (atual && botEstado[atual.id]) || 'menu';
       const tema = detectarTema(texto, estado);
-      return respostaTema(tema, texto, estado, historico);
+      return respostaTema(tema, texto, estado);
     }
 
     let botBusy = false;
