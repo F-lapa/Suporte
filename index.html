@@ -779,8 +779,8 @@
         <input type="text" id="busca" placeholder="Buscar..." oninput="filtrar()">
       </div>
       <div class="abas">
-        <button class="hbtn on" id="tabTeste" onclick="setAba('teste')">🧪 Teste <span id="nTeste"></span></button>
-        <button class="hbtn" id="tabCliente" onclick="setAba('cliente')">👥 Clientes <span id="nCli"></span></button>
+        <button class="hbtn" id="tabTeste" onclick="setAba('teste')">🧪 Teste <span id="nTeste"></span></button>
+        <button class="hbtn on" id="tabCliente" onclick="setAba('cliente')">👥 Clientes <span id="nCli"></span></button>
       </div>
       <div style="padding:0 14px 8px">
         <button class="hbtn" style="width:100%;justify-content:center" onclick="copiarLinkPublico()">🔗 Copiar link público</button>
@@ -1279,6 +1279,43 @@
       }
     }
 
+
+    async function enriquecerLista() {
+      try {
+        const { data } = await sb.from('mensagens').select('conversa_id, remetente, lida, texto, tipo, created_at').order('created_at', { ascending: false }).limit(200);
+        const last = {}, unread = {};
+        for (const m of (data||[])) {
+          const id = m.conversa_id;
+          if (!id) continue;
+          if (!last[id]) last[id] = m;
+          if (m.remetente === 'cliente' && m.lida === false) unread[id] = (unread[id]||0) + 1;
+        }
+        for (const conv of (conversas||[])) {
+          conv.nao_lidas = unread[conv.id] || 0;
+          if (last[conv.id]) {
+            const tipo = String(last[conv.id].tipo||'texto').toLowerCase();
+            let t = last[conv.id].texto || '';
+            if (tipo==='imagem'||tipo==='foto') t = 'Foto';
+            else if (tipo==='video') t = 'Vídeo';
+            else if (tipo==='audio') t = 'Áudio';
+            else if (String(t).startsWith('enc:')) t = 'Mensagem';
+            conv.ultima_msg = String(t).replace(/\s+/g,' ').slice(0,60);
+          }
+        }
+      } catch(e) { console.warn('enriquecer', e); }
+    }
+    function atualizarAbas() {
+      const totT = (conversas||[]).filter(c => statusAba(c)==='teste').reduce((s,c)=>s+Number(c.nao_lidas||0),0);
+      const totC = (conversas||[]).filter(c => statusAba(c)==='cliente').reduce((s,c)=>s+Number(c.nao_lidas||0),0);
+      const t = document.getElementById('tabTeste');
+      const k = document.getElementById('tabCliente');
+      const nT = document.getElementById('nTeste');
+      const nC = document.getElementById('nCli');
+      if (nT) nT.textContent = totT ? '('+totT+')' : '';
+      if (nC) nC.textContent = totC ? '('+totC+')' : '';
+      if (t) t.classList.toggle('pisca', totT>0 && abaAtual!=='teste');
+      if (k) k.classList.toggle('pisca', totC>0 && abaAtual!=='cliente');
+    }
     async function loadList() {
       const box = document.getElementById('lista');
       if (box) box.innerHTML = '<div class="vazio">Carregando...</div>';
@@ -1632,7 +1669,7 @@
       return p[2] + '/' + p[1] + '/' + p[0];
     }
     let filtroVenc = '';
-    let abaAtual = 'teste';
+    let abaAtual = 'cliente';
     function statusAba(c) {
       const s = String((c && c.status) || '').toLowerCase();
       if (s === 'teste' || s === 'test') return 'teste';
