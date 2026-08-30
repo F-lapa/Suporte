@@ -787,6 +787,20 @@
     </div>
   </div>
 
+  <div class="cobrar-box" id="conviteBox">
+    <div class="cobrar-card">
+      <h3>Convite do cliente</h3>
+      <p style="color:var(--text2);font-size:13px;margin:8px 0 6px">Código (mais curto — cole no app)</p>
+      <input id="conviteCodigo" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text);font-size:18px;letter-spacing:1px;text-align:center;font-family:inherit">
+      <p style="color:var(--text2);font-size:13px;margin:14px 0 6px">Link</p>
+      <input id="conviteLink" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text);font-size:13px;font-family:inherit">
+      <div class="modal-row" style="margin-top:14px">
+        <button class="btn-x" onclick="fecharConvite()">Fechar</button>
+        <button class="btn-ok" onclick="copiarConvite('codigo')">Copiar código</button>
+      </div>
+      <button class="btn-ok" style="width:100%;margin-top:8px" onclick="copiarConvite('link')">Copiar link</button>
+    </div>
+  </div>
   <div class="cobrar-box" id="cobrarBox">
     <div class="cobrar-card">
       <h3>Enviar cobrança</h3>
@@ -1250,7 +1264,7 @@
       if (!nome) return alert('Digite o nome');
       const whatsapp = (document.getElementById('zapInput') && document.getElementById('zapInput').value || '').replace(/\D/g,'');
       const vencimento = (document.getElementById('vencInput') && document.getElementById('vencInput').value) || null;
-      const id = Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+      const id = Math.random().toString(36).replace(/[^a-z0-9]/g,'').slice(2,8);
       let res = await sb.from('conversas').insert([{ id, nome, notas: '', whatsapp, vencimento, updated_at: new Date().toISOString() }]);
       if (res.error) res = await sb.from('conversas').insert([{ id, nome, whatsapp, vencimento }]);
       if (res.error) res = await sb.from('conversas').insert([{ id, nome, notas: '', updated_at: new Date().toISOString() }]);
@@ -1289,8 +1303,18 @@
     }
 
     async function openById(id) {
-      const { data, error } = await sb.from('conversas').select('*').eq('id', id).single();
-      if (error || !data) {
+      let data = null;
+      let res = await sb.from('conversas').select('*').eq('id', id).maybeSingle();
+      data = res.data;
+      if (!data) {
+        res = await sb.from('conversas').select('*').eq('codigo', String(id).toLowerCase()).maybeSingle();
+        data = res.data;
+      }
+      if (!data) {
+        res = await sb.from('conversas').select('*').eq('codigo', String(id).toUpperCase()).maybeSingle();
+        data = res.data;
+      }
+      if (!data) {
         document.getElementById('chat').innerHTML = '<div class="chat-empty"><h2>Conversa não encontrada</h2></div>';
         return;
       }
@@ -2220,20 +2244,31 @@
       if (e.key === 'Enter') { e.preventDefault(); sendMsg(); }
     });
 
+    async function garantirCodigo() {
+      if (!atual) return '';
+      if (atual.codigo && String(atual.codigo).length <= 8) return String(atual.codigo).toUpperCase();
+      if (atual.id && String(atual.id).length <= 8) {
+        atual.codigo = String(atual.id).toUpperCase();
+        return atual.codigo;
+      }
+      const codigo = Math.random().toString(36).replace(/[^a-z0-9]/g,'').slice(2,8).toUpperCase();
+      const res = await sb.from('conversas').update({ codigo }).eq('id', atual.id);
+      if (!res.error) atual.codigo = codigo;
+      return res.error ? String(atual.id) : codigo;
+    }
     async function copiarLink() {
       if (!atual) return;
+      const codigo = await garantirCodigo();
       const base = location.href.split('?')[0].split('#')[0];
-      const longo = base + '?s=' + atual.id;
-      const codigo = atual.id;
-      let curto = '';
-      try {
-        const r = await fetch('https://is.gd/create.php?format=json&url=' + encodeURIComponent(longo));
-        const j = await r.json();
-        if (j && j.shorturl) curto = j.shorturl;
-      } catch(e) {}
-      const melhor = curto || codigo;
-      prompt('Envie isto ao cliente (código ou link curto):', melhor);
-      if (navigator.clipboard) navigator.clipboard.writeText(melhor).then(() => toast('Copiado: ' + melhor)).catch(()=>{});
+      document.getElementById('conviteCodigo').value = codigo;
+      document.getElementById('conviteLink').value = base + '?s=' + codigo;
+      document.getElementById('conviteBox').classList.add('on');
+    }
+    function fecharConvite(){ document.getElementById('conviteBox').classList.remove('on'); }
+    function copiarConvite(tipo) {
+      const v = document.getElementById(tipo==='codigo' ? 'conviteCodigo' : 'conviteLink').value;
+      if (navigator.clipboard) navigator.clipboard.writeText(v).then(()=>toast('Copiado!')).catch(()=>prompt('Copie:', v));
+      else prompt('Copie:', v);
     }
 
     function fmt(d) {
