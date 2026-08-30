@@ -1488,12 +1488,7 @@
             if (p.new.remetente === outro) {
               await sb.from('mensagens').update({ lida: true }).eq('id', p.new.id);
             }
-            if (p.new.remetente === 'cliente' && !isCli) {
-              const tp = (p.new.tipo||'texto').toLowerCase();
-              if (tp === 'imagem' || tp === 'foto' || tp === 'image') chamarBot('[foto]', p.new.url_midia);
-              else if (tp === 'video') chamarBot('[video]', p.new.url_midia);
-              else chamarBot(p.new.texto || '');
-            }
+            // bot só dispara no aparelho que enviou, pra não duplicar
           })
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
           p => {
@@ -1955,9 +1950,14 @@ Não invente preço. Não fale que não consegue ver a imagem se ela estiver vis
       if (conv && (conv.atendente_assumiu === true || conv.bot_ativo === false)) { botBusy = false; return; }
 
       try {
-        const { data: lastRows } = await sb.from('mensagens').select('remetente, texto, tipo, created_at')
-          .eq('conversa_id', atual.id).order('created_at', { ascending: false }).limit(2);
-        if (lastRows && lastRows[0] && lastRows[0].remetente === 'agente') { botBusy = false; return; }
+        const { data: lastRows } = await sb.from('mensagens').select('remetente, texto, tipo, created_at, url_midia')
+          .eq('conversa_id', atual.id).order('created_at', { ascending: false }).limit(3);
+        if (lastRows && lastRows[0] && lastRows[0].remetente === 'agente') {
+          const t = Date.now() - new Date(lastRows[0].created_at).getTime();
+          if (t < 8000) { botBusy = false; return; }
+        }
+        const jaTemBot = (lastRows||[]).filter(m => m.remetente==='agente' && Date.now()-new Date(m.created_at).getTime()<8000);
+        if (jaTemBot.length) { botBusy = false; return; }
 
         const { data: msgs } = await sb.from('mensagens').select('texto, remetente, tipo, url_midia')
           .eq('conversa_id', atual.id)
