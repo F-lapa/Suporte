@@ -1304,6 +1304,7 @@
         toast('Bem-vindo, ' + ADMIN_USER);
         setTimeout(pedirNotificacao, 400);
         setTimeout(iniciarNotificacoes, 800);
+        setTimeout(function(){ avisarMsg('Chat do ADM', 'Notificações ativas', 'teste-boot'); }, 1500);
       } else {
         err.style.display = 'block';
       }
@@ -1743,7 +1744,7 @@
       try {
         const bridge = (typeof AndroidChat !== 'undefined') ? AndroidChat : window.AndroidChat;
         if (bridge && bridge.notify) {
-          bridge.notify(String(titulo||'Chat'), String(corpo||'Nova mensagem'));
+          bridge.show(String(titulo||'Chat'), String(corpo||'Nova mensagem'));
         } else if ('Notification' in window && Notification.permission === 'granted') {
           const n = new Notification(titulo, { body: corpo || 'Nova mensagem', tag: 'chat-msg', renotify: true });
           n.onclick = () => { try { window.focus(); } catch(e) {} n.close(); };
