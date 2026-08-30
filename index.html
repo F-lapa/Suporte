@@ -755,6 +755,7 @@
         <div class="chat-head">
           <button class="back" onclick="voltar()">←</button>
           <div class="av" id="av">?</div>
+          <input type="file" id="fotoPerfilInput" accept="image/*" style="display:none" onchange="enviarFotoPerfil(event)">
           <div class="chat-head-info">
             <h2 id="nome">Cliente</h2>
             <div class="status" id="status">Offline</div>
@@ -766,6 +767,7 @@
             <button class="hbtn" id="btnCobrar" onclick="abrirWhatsAppCobranca()" title="Cobrança">💰 <span class="lbl">Cobrança</span></button>
             <button class="hbtn" id="btnRenovar" onclick="marcarRenovado()" title="Renovado">✅ <span class="lbl">Renovado</span></button>
             <button class="hbtn" id="btnLink" onclick="copiarLink()" title="Link">🔗 <span class="lbl">Link</span></button>
+            <button class="hbtn" id="btnFotoCli" onclick="document.getElementById('fotoPerfilInput').click()" style="display:none" title="Minha foto">📷 <span class="lbl">Minha foto</span></button>
           </div>
         </div>
         <div id="msgs"></div>
@@ -1250,7 +1252,7 @@
         const at = atual && atual.id === c.id ? 'ativo' : '';
         const sid = String(c.id || '').replace(/'/g, '');
         return `<div class="item ${at}" onclick="openChat('${sid}')">
-          <div class="av">${nome.charAt(0).toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
+          <div class="av" style="${c.foto_cliente ? "background-image:url('"+esc(c.foto_cliente)+"');background-size:cover;background-position:center;background-color:transparent" : ""}">${c.foto_cliente ? '' : nome.charAt(0).toUpperCase()}${on ? '<span class="dot"></span>' : ''}</div>
           <div class="item-info">
             <div class="item-nome">${esc(nome)}</div>
             <div class="item-sub">${subCliente(c)}</div>
@@ -1357,6 +1359,42 @@
       }, 150);
     }
 
+
+    function aplicarFoto(el, url, nome) {
+      if (!el) return;
+      if (url) {
+        el.textContent = '';
+        el.style.backgroundImage = "url('"+url+"')";
+        el.style.backgroundSize = 'cover';
+        el.style.backgroundPosition = 'center';
+        el.style.backgroundColor = 'transparent';
+      } else {
+        el.style.backgroundImage = '';
+        el.textContent = (nome||'?').charAt(0).toUpperCase();
+      }
+    }
+    async function enviarFotoPerfil(ev) {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      if (!file || !atual || !isCli) return;
+      if (!file.type.startsWith('image/')) return toast('Escolha uma foto', true);
+      const t = document.createElement('div'); t.className = 'uploading'; t.textContent = 'Enviando foto...';
+      document.body.appendChild(t);
+      try {
+        let up = file, ct = file.type || 'image/jpeg';
+        try { const cimg = await comprimirImagem(file); if (cimg) { up = cimg; ct = cimg.type || ct; } } catch(e) {}
+        const nome = 'perfil/' + atual.id + '_' + Date.now() + '.jpg';
+        const { error: ue } = await sb.storage.from('midias').upload(nome, up, { cacheControl:'3600', upsert:true, contentType: ct });
+        if (ue) throw new Error(ue.message);
+        const { data: ud } = sb.storage.from('midias').getPublicUrl(nome);
+        const url = ud.publicUrl;
+        const res = await sb.from('conversas').update({ foto_cliente: url }).eq('id', atual.id);
+        if (res.error) throw new Error('Rode o SQL da foto de perfil');
+        atual.foto_cliente = url;
+        toast('Foto de perfil salva');
+      } catch(e) { toast(e.message || 'Erro na foto', true); }
+      finally { t.remove(); }
+    }
     function showChat() {
       document.getElementById('empty').style.display = 'none';
       const a = document.getElementById('active');
@@ -1377,11 +1415,13 @@
         // Esconde seta de voltar no cliente
         const backBtn = document.querySelector('.back');
         if (backBtn) backBtn.style.display = 'none';
+        const bf = document.getElementById('btnFotoCli');
+        if (bf) bf.style.display = 'inline-flex';
       } else {
         nomeEl.textContent = atual.nome;
-        avEl.textContent = atual.nome[0].toUpperCase();
-        avEl.style.backgroundImage = '';
-        avEl.style.backgroundColor = '';
+        aplicarFoto(avEl, atual.foto_cliente, atual.nome);
+        const bf = document.getElementById('btnFotoCli');
+        if (bf) bf.style.display = 'none';
       }
 
       document.getElementById('app').classList.add('open');
