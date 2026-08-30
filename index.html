@@ -2,6 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Suporte IPTV</title>
   <meta name="theme-color" content="#0e1520">
@@ -786,6 +788,92 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const SECRET = 'AtendimentoSecreto2026!';
 
+    // ===== ATENDIMENTO PERSONALIZADO (edite aqui) =====
+    const CONFIG = {
+      nomeEmpresa: 'Suporte IPTV',
+      nomeBot: 'Suporte',
+      horario: '08:00 às 23:00, todos os dias',
+      menu:
+`Olá! Sou o suporte automático da *Suporte IPTV*.
+Escolha uma opção digitando o número:
+
+1 - Instalação do app
+2 - Atualizar lista / URL
+3 - Buffer / travando
+4 - Tela preta / sem imagem
+5 - Login e senha
+6 - Renovação / Pix
+7 - Falar com atendente
+
+Horário: 08:00 às 23:00`,
+      opcoes: {
+        '1': `📦 *Instalação*
+1) Instale o aplicativo que enviamos
+2) Abra o app
+3) Cole a lista/URL
+4) Salve e aguarde carregar
+
+Qual aparelho você usa?
+A - TV Box
+B - Celular
+C - Smart TV
+
+Digite A, B ou C, ou 0 para voltar ao menu.`,
+        '2': `🔗 *Lista / URL*
+Me diga o app que você usa:
+- IBO Player
+- Duo
+- Smart UP
+- Outro
+
+Depois eu te oriento onde colar a lista.
+Digite 0 para voltar ao menu.`,
+        '3': `📶 *Buffer / travando*
+Faça isto:
+1) Teste outro canal
+2) Reinicie o app
+3) Reinicie o aparelho
+4) Confira a internet
+
+Se continuar, me diga o nome do canal e o app.
+Digite 0 para o menu.`,
+        '4': `⬛ *Tela preta*
+Verifique:
+1) Internet funcionando?
+2) Lista atualizada?
+3) App reiniciado?
+
+Me diga o aparelho e o que aparece na tela.
+Digite 0 para o menu.`,
+        '5': `🔐 *Login e senha*
+- Digite usuário e senha sem espaço
+- Confira se o plano não venceu
+- Tente sair e entrar de novo
+
+Qual app está usando?
+Digite 0 para o menu.`,
+        '6': `💳 *Renovação*
+Me informe:
+- Seu nome
+- App que usa
+
+Um atendente confirma o valor e envia o Pix.
+Digite 0 para o menu.`,
+        '7': `👤 *Atendente humano*
+Certo! Já encaminhei para um atendente.
+Nosso horário é 08:00 às 23:00.
+Aguarde que alguém vai te responder.`,
+        '0': null,
+        'a': `TV Box: abra o app, vá em Add Playlist / URL, cole o link, salve e volte à lista de canais.
+Digite 0 para o menu.`,
+        'b': `Celular: instale o APK, abra, em Lista/URL cole o link enviado, salve e aguarde.
+Digite 0 para o menu.`,
+        'c': `Smart TV: abra o app, procure Add Playlist, cole a URL com o controle e salve.
+Digite 0 para o menu.`
+      }
+    };
+
+
     // ===== LOGIN ADMIN =====
     // Altere a senha aqui se quiser:
     const ADMIN_USER = 'Fernando Lapa';
@@ -1216,7 +1304,7 @@
         if (box && !box.children.length) {
           await sb.from('mensagens').insert([{
             conversa_id: atual.id,
-            texto: 'Olá! Bem-vindo ao suporte IPTV. Sou o assistente automático. Como posso ajudar? Instalação, lista, buffer, tela preta, login ou renovação.',
+            texto: CONFIG.menu,
             remetente: 'agente',
             tipo: 'texto',
             lida: false
@@ -1431,24 +1519,19 @@
     }
 
     function respostaLocal(texto) {
-      const t = (texto || '').toLowerCase();
-      if (/humano|atendente|pessoa|falar com (alguem|alguém)|operador/.test(t))
-        return 'Certo! Já estou chamando um atendente humano. Aguarde um momento, por favor.';
-      if (/renov|pag|pix|pre[cç]o|plano|venc/.test(t))
-        return 'Para renovação ou pagamento, me informe seu nome e o app que usa. Um atendente confirma o valor e te envia o Pix.';
-      if (/instal|baix|apk|aplicativo|config/.test(t))
-        return 'Para instalar: baixe o app que enviamos, abra, cole a lista/URL e salve. Qual aparelho você usa (TV Box, celular ou Smart TV)?';
-      if (/buffer|trav|lento|carreg/.test(t))
-        return 'Buffer costuma ser internet ou servidor. Teste outro canal, reinicie o app e o aparelho. Se continuar, me diga o nome do canal e o app.';
-      if (/tela preta|n[aã]o abre|sem imagem|sem som|n[aã]o funciona/.test(t))
-        return 'Vamos checar: 1) internet ok? 2) lista atualizada? 3) app reiniciado? Me diga o que aparece na tela e o modelo do aparelho.';
-      if (/login|senha|usu[aá]rio|entrar/.test(t))
-        return 'Se não entra, confira usuário e senha sem espaço. Se estiver vencido, peça renovação. Qual app está usando?';
-      if (/lista|url|dns|portal/.test(t))
-        return 'Posso te orientar a atualizar a lista. Me diga o app (IBO Player, Duo, Smart UP, etc.) que envio o passo a passo.';
-      if (/oi+|ol[aá]|bom dia|boa tarde|boa noite|eai|e aí/.test(t))
-        return 'Olá! Sou o suporte automático IPTV. Pode falar qual é o problema: instalação, buffer, tela preta, login ou renovação.';
-      return 'Entendi. Sou o suporte automático. Descreva o problema com mais detalhe (app, aparelho e o que aparece na tela) que eu te oriento. Se preferir, peça um atendente humano.';
+      const t = (texto || '').trim().toLowerCase();
+      const soNumero = t.replace(/[^0-9a-z]/g, '');
+      if (soNumero === '0' || t === 'menu' || t === 'voltar') return CONFIG.menu;
+      if (CONFIG.opcoes[soNumero]) return CONFIG.opcoes[soNumero];
+      if (/humano|atendente|pessoa|operador/.test(t)) return CONFIG.opcoes['7'];
+      if (/renov|pag|pix|plano|venc/.test(t)) return CONFIG.opcoes['6'];
+      if (/instal|baix|apk|config/.test(t)) return CONFIG.opcoes['1'];
+      if (/buffer|trav|lento|carreg/.test(t)) return CONFIG.opcoes['3'];
+      if (/tela preta|n[aã]o abre|sem imagem|sem som/.test(t)) return CONFIG.opcoes['4'];
+      if (/login|senha|usu[aá]rio/.test(t)) return CONFIG.opcoes['5'];
+      if (/lista|url|dns|portal/.test(t)) return CONFIG.opcoes['2'];
+      if (/oi+|ol[aá]|bom dia|boa tarde|boa noite|eai|e aí|menu|op[cç]/.test(t)) return CONFIG.menu;
+      return CONFIG.menu + '\n\nNão entendi. Digite um número de 1 a 7.';
     }
 
     let botBusy = false;
