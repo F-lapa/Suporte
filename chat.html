@@ -1668,11 +1668,15 @@
         if (Notification.permission === 'default') Notification.requestPermission();
       } catch(e) {}
     }
-    function avisarMsg(titulo, corpo) {
+    let lastNotifyId = '';
+    function avisarMsg(titulo, corpo, id) {
+      if (id && id === lastNotifyId) return;
+      if (id) lastNotifyId = id;
       beepNotify();
       try {
-        if (window.AndroidChat && AndroidChat.notify) {
-          AndroidChat.notify(String(titulo||'Chat'), String(corpo||'Nova mensagem'));
+        const bridge = (typeof AndroidChat !== 'undefined') ? AndroidChat : window.AndroidChat;
+        if (bridge && bridge.notify) {
+          bridge.notify(String(titulo||'Chat'), String(corpo||'Nova mensagem'));
         } else if ('Notification' in window && Notification.permission === 'granted') {
           const n = new Notification(titulo, { body: corpo || 'Nova mensagem', tag: 'chat-msg', renotify: true });
           n.onclick = () => { try { window.focus(); } catch(e) {} n.close(); };
@@ -1693,14 +1697,31 @@
           const meu = isCli ? 'cliente' : 'agente';
           const outro = isCli ? 'agente' : 'cliente';
           if (m.remetente !== outro) return;
-          const vendoEsta = atual && atual.id === m.conversa_id && !document.hidden;
-          if (vendoEsta) return;
           const nome = isCli ? (CONFIG.nomeBot || 'Lauren') : ((conversas.find(c => c.id === m.conversa_id)||{}).nome || 'Cliente');
           const tipo = (m.tipo||'texto');
-          const corpo = tipo === 'imagem' ? 'Enviou uma foto' : tipo === 'video' ? 'Enviou um vídeo' : tipo === 'audio' ? 'Enviou um áudio' : 'Nova mensagem';
-          avisarMsg(nome, corpo);
+          const corpo = tipo === 'imagem' ? 'Enviou uma foto' : tipo === 'video' ? 'Enviou um vídeo' : tipo === 'audio' ? 'Enviou um áudio' : (m.texto && !String(m.texto).startsWith('enc:') ? String(m.texto).slice(0,80) : 'Nova mensagem');
+          avisarMsg(nome, corpo, m.id);
         })
         .subscribe();
+      if (window._pollN) clearInterval(window._pollN);
+      window._pollN = setInterval(checarNovas, 7000);
+    }
+    async function checarNovas() {
+      try {
+        let q = sb.from('mensagens').select('id,conversa_id,remetente,tipo,texto,created_at').order('created_at', { ascending: false }).limit(5);
+        if (isCli && atual) q = q.eq('conversa_id', atual.id);
+        const { data } = await q;
+        const outro = isCli ? 'agente' : 'cliente';
+        for (const m of (data || [])) {
+          if (m.remetente !== outro) continue;
+          if (m.id === lastNotifyId) continue;
+          const age = Date.now() - new Date(m.created_at).getTime();
+          if (age > 20000) continue;
+          const nome = isCli ? (CONFIG.nomeBot || 'Lauren') : ((conversas.find(c => c.id === m.conversa_id)||{}).nome || 'Cliente');
+          avisarMsg(nome, 'Nova mensagem', m.id);
+          break;
+        }
+      } catch(e) {}
     }
 
     function listen() {
@@ -1714,7 +1735,7 @@
             const outro = isCli ? 'agente' : 'cliente';
             if (p.new.remetente === outro) {
               await sb.from('mensagens').update({ lida: true }).eq('id', p.new.id);
-              if (document.hidden) avisarMsg(isCli ? (CONFIG.nomeBot||'Lauren') : (atual.nome||'Cliente'), 'Nova mensagem');
+              avisarMsg(isCli ? (CONFIG.nomeBot||'Lauren') : (atual.nome||'Cliente'), 'Nova mensagem', p.new.id);
             }
           })
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'mensagens', filter:'conversa_id=eq.'+atual.id },
@@ -1891,10 +1912,12 @@
       if (from === 'agente') {
         try { final = await enc(t, atual.id); } catch { toast('Erro crypto', true); document.getElementById('send').disabled = false; return; }
       }
-      const { error } = await sb.from('mensagens').insert([{ conversa_id: atual.id, texto: final, remetente: from, tipo: 'texto', lida: false }]);
+      const ins = await sb.from('mensagens').insert([{ conversa_id: atual.id, texto: final, remetente: from, tipo: 'texto', lida: false }]).select();
       await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
       document.getElementById('send').disabled = false; input.focus();
-      if (error) { toast(error.message, true); return; }
+      if (ins.error) { toast(ins.error.message, true); return; }
+      const row = (ins.data && ins.data[0]) || { id: 'tmp-'+Date.now(), conversa_id: atual.id, texto: t, remetente: from, tipo: 'texto', created_at: new Date().toISOString(), lida: false };
+      await addMsg(row); scroll();
 
     }
 
@@ -2065,10 +2088,12 @@
         let texto = file.name || (tipo === 'imagem' ? 'Foto' : tipo === 'video' ? 'Vídeo' : 'Arquivo');
         if (from === 'agente' && texto) try { texto = await enc(texto, atual.id); } catch(e) {}
 
-        const { error: me } = await sb.from('mensagens').insert([{
+        const me = await sb.from('mensagens').insert([{
           conversa_id: atual.id, texto, remetente: from, tipo, url_midia: ud.publicUrl, lida: false
-        }]);
-        if (me) throw new Error(me.message);
+        }]).select();
+        if (me.error) throw new Error(me.error.message);
+        const row = (me.data && me.data[0]) || { id:'tmp-'+Date.now(), conversa_id:atual.id, texto, remetente:from, tipo, url_midia:ud.publicUrl, created_at:new Date().toISOString() };
+        await addMsg(row); scroll();
         sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
         toast('Enviado!');
       } catch (e) {
@@ -2131,7 +2156,9 @@
         const { data: ud } = sb.storage.from('midias').getPublicUrl(nomeF);
         let txt = 'Áudio';
         if (from === 'agente') try { txt = await enc('Áudio', atual.id); } catch {}
-        await sb.from('mensagens').insert([{ conversa_id:atual.id, texto:txt, remetente:from, tipo:'audio', url_midia:ud.publicUrl, lida:false }]);
+        const au = await sb.from('mensagens').insert([{ conversa_id:atual.id, texto:txt, remetente:from, tipo:'audio', url_midia:ud.publicUrl, lida:false }]).select();
+        const arow = (au.data && au.data[0]) || { id:'tmp-'+Date.now(), conversa_id:atual.id, texto:txt, remetente:from, tipo:'audio', url_midia:ud.publicUrl, created_at:new Date().toISOString() };
+        await addMsg(arow); scroll();
         await sb.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', atual.id);
         toast('Áudio enviado!');
       } catch(e) { toast(e.message || 'Erro', true); }
