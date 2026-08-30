@@ -2005,7 +2005,7 @@
         const url = URL.createObjectURL(blob);
         const img = new Image();
         img.onload = () => {
-          const max = 1280;
+          const max = 720;
           let w = img.width, h = img.height;
           if (w > max || h > max) {
             const s = Math.min(max/w, max/h);
@@ -2013,9 +2013,11 @@
           }
           const cv = document.createElement('canvas');
           cv.width = w; cv.height = h;
-          cv.getContext('2d').drawImage(img, 0, 0, w, h);
+          const ctx = cv.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.drawImage(img, 0, 0, w, h);
           URL.revokeObjectURL(url);
-          cv.toBlob(b => resolve(b || blob), 'image/jpeg', 0.72);
+          cv.toBlob(b => resolve(b || blob), 'image/jpeg', 0.5);
         };
         img.onerror = () => { URL.revokeObjectURL(url); resolve(blob); };
         img.src = url;
