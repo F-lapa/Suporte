@@ -159,10 +159,23 @@
     .btn-novo:hover { transform: translateY(-1px); }
     .abas { display:flex; gap:8px; padding:0 14px 10px; }
     .abas .hbtn { flex:1; justify-content:center; font-weight:700; }
-    .hbtn.pisca { animation: piscaAba 1s infinite; }
+    .hbtn.pisca {
+      animation: piscaAba 0.8s infinite;
+      border-color: #ef4444 !important;
+      color: #fff !important;
+      font-weight: 800;
+    }
     @keyframes piscaAba {
-      0%,100% { box-shadow:0 0 0 0 rgba(34,211,238,.0); background: var(--surface2); }
-      50% { box-shadow:0 0 0 4px rgba(34,211,238,.35); background: rgba(34,211,238,.22); color:#ecfeff; }
+      0%,100% { background: #7f1d1d; box-shadow: 0 0 0 0 rgba(239,68,68,.55); }
+      50% { background: #ef4444; box-shadow: 0 0 18px 4px rgba(239,68,68,.7); }
+    }
+    .item.pisca {
+      animation: piscaItem 0.9s infinite;
+      border: 1px solid #ef4444 !important;
+    }
+    @keyframes piscaItem {
+      0%,100% { background: rgba(239,68,68,.12); box-shadow: inset 4px 0 0 #ef4444; }
+      50% { background: rgba(239,68,68,.38); box-shadow: inset 6px 0 0 #fecaca; }
     }
     .search-wrap { padding: 8px 14px 12px; }
     .search-wrap input {
@@ -1327,8 +1340,8 @@
       const nC = document.getElementById('nCli');
       if (nT) nT.textContent = totT ? '('+totT+')' : '';
       if (nC) nC.textContent = totC ? '('+totC+')' : '';
-      if (t) t.classList.remove('pisca');
-      if (k) k.classList.remove('pisca');
+      if (t) t.classList.toggle('pisca', totT>0);
+      if (k) k.classList.toggle('pisca', totC>0);
     }
     async function loadList() {
       const box = document.getElementById('lista');
@@ -1418,10 +1431,8 @@
           const aba = statusAba(conv || {});
           if (!isCli && m.remetente === 'cliente') {
             const el = document.getElementById(aba === 'teste' ? 'tabTeste' : 'tabCliente');
-            if (el && abaAtual !== aba) {
-              el.classList.add('pisca');
-              setTimeout(() => el.classList.remove('pisca'), 4000);
-            }
+            if (el) el.classList.add('pisca');
+            atualizarAbas();
             notificarApp(conv && conv.nome ? conv.nome : 'Cliente', preview);
           }
           if (isCli && m.remetente === 'agente') {
