@@ -1158,7 +1158,7 @@
       if (msg.from === eu) return;
 
       if (msg.tipo === 'convite' && isCli) {
-        document.getElementById('callIncomingTitle').textContent = 'Suporte está ligando';
+        document.getElementById('callIncomingTitle').textContent = 'Atendimento está ligando';
         document.getElementById('callIncoming').classList.add('on');
         return;
       }
@@ -1436,7 +1436,7 @@
             notificarApp(conv && conv.nome ? conv.nome : 'Cliente', preview);
           }
           if (isCli && m.remetente === 'agente') {
-            notificarApp('Suporte', preview);
+            notificarApp('Atendimento', preview);
           }
         })
         .subscribe();
@@ -1608,8 +1608,7 @@
       const avEl = document.getElementById('av');
 
       if (isCli) {
-        // Cliente vê "Suporte" + logo
-        nomeEl.textContent = 'Suporte';
+        nomeEl.textContent = 'Atendimento';
         avEl.textContent = '';
         avEl.style.backgroundImage = "url('suporte-avatar.png')";
         avEl.style.backgroundSize = 'cover';
