@@ -6,7 +6,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Suporte IPTV</title>
-  <meta name="theme-color" content="#07111f">
+  <meta name="theme-color" content="#05030a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
@@ -18,23 +18,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #061018;
-      --surface: #0a1624;
-      --surface2: #102033;
-      --surface3: #173049;
-      --border: #1e3a52;
-      --border2: #2a5070;
-      --primary: #22d3ee;
-      --primary2: #06b6d4;
-      --primary-glow: rgba(34, 211, 238, 0.28);
+      --bg: #05030a;
+      --surface: #0b0614;
+      --surface2: #140a22;
+      --surface3: #1c1030;
+      --border: #3b2060;
+      --border2: #5b3dff;
+      --primary: #7c5cff;
+      --primary2: #22d3ee;
+      --primary-glow: rgba(124, 92, 255, 0.45);
       --green: #22c55e;
       --green-dim: rgba(34, 197, 94, 0.15);
       --text: #f1f5f9;
       --text2: #94a3b8;
       --text3: #64748b;
-      --me: #0e4a5c;
+      --me: #4c1d95;
       --me-border: #22d3ee;
-      --other: #12202e;
+      --other: #12081c;
       --danger: #ef4444;
       --radius: 18px;
       --shadow: 0 8px 32px rgba(0,0,0,0.45);
@@ -42,7 +42,10 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-      background: radial-gradient(ellipse 80% 50% at 20% -10%, rgba(34,211,238,.12), transparent 50%), radial-gradient(ellipse 60% 40% at 100% 100%, rgba(99,102,241,.10), transparent 45%), var(--bg);
+      background:
+        radial-gradient(ellipse 70% 45% at 15% -10%, rgba(168,85,247,.22), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 110%, rgba(34,211,238,.16), transparent 50%),
+        var(--bg);
       color: var(--text);
       height: 100vh; height: 100dvh;
       overflow: hidden;
@@ -56,15 +59,15 @@
       display: flex; align-items: center; justify-content: center;
       padding: 24px;
       background:
-        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(59,130,246,0.18), transparent 55%),
-        radial-gradient(ellipse 50% 40% at 100% 100%, rgba(139,92,246,0.12), transparent 50%),
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(168,85,247,0.28), transparent 55%),
+        radial-gradient(ellipse 50% 40% at 100% 100%, rgba(34,211,238,0.16), transparent 50%),
         var(--bg);
     }
     .login-screen.hidden { display: none; }
     .login-box {
       width: 100%; max-width: 400px;
       background: linear-gradient(180deg, rgba(21,29,43,0.95), rgba(14,21,32,0.98));
-      border: 1px solid var(--border2);
+      border: 1px solid rgba(168,85,247,.35);
       border-radius: 24px;
       padding: 36px 32px 32px;
       box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,0.03) inset;
@@ -106,7 +109,7 @@
       box-shadow: 0 0 0 3px var(--primary-glow);
     }
     .login-box .btn-login {
-      width: 100%; background: linear-gradient(135deg, var(--primary), #6366f1);
+      width: 100%; background: linear-gradient(135deg, #a855f7, #22d3ee);
       color: white; border: none; padding: 15px;
       border-radius: 14px; font-size: 15px; font-weight: 700;
       cursor: pointer; font-family: inherit; margin-top: 8px;
@@ -149,7 +152,7 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .btn-novo {
-      background: linear-gradient(135deg, var(--primary), #6366f1);
+      background: linear-gradient(135deg, #a855f7, #22d3ee);
       color: white; border: none;
       padding: 9px 14px; border-radius: 11px; font-size: 13px;
       font-weight: 600; cursor: pointer; font-family: inherit;
@@ -330,17 +333,17 @@
       to { opacity: 1; transform: none; }
     }
     .bubble.me {
-      background: linear-gradient(160deg, #155e75 0%, #0e7490 55%, #164e63 100%);
+      background: linear-gradient(160deg, #6d28d9 0%, #4f46e5 45%, #0e7490 100%);
       align-self: flex-end;
       border-bottom-right-radius: 5px;
-      border: 1px solid rgba(34,211,238,0.28);
-      box-shadow: 0 10px 24px rgba(8,47,73,0.35);
+      border: 1px solid rgba(34,211,238,0.35);
+      box-shadow: 0 10px 28px rgba(109,40,217,0.35);
     }
     .bubble.them {
-      background: linear-gradient(180deg, #173044, #122433);
+      background: linear-gradient(180deg, #1a1028, #12081c);
       align-self: flex-start;
       border-bottom-left-radius: 5px;
-      border: 1px solid rgba(148,163,184,0.12);
+      border: 1px solid rgba(168,85,247,0.22);
     }
     .bubble .foot {
       display: flex; align-items: center; justify-content: flex-end;
@@ -414,7 +417,7 @@
       box-shadow: 0 0 0 3px var(--primary-glow);
     }
     .btn-save {
-      background: linear-gradient(135deg, var(--primary), #6366f1);
+      background: linear-gradient(135deg, #a855f7, #22d3ee);
       color: white; border: none; padding: 13px; border-radius: 13px;
       font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
       box-shadow: 0 4px 16px var(--primary-glow);
@@ -472,7 +475,7 @@
     }
     #inp::placeholder { color: var(--text3); }
     #send {
-      background: linear-gradient(135deg, var(--primary), #6366f1);
+      background: linear-gradient(135deg, #a855f7, #22d3ee);
       border: none; width: 46px; height: 46px;
       border-radius: 50%; color: white; font-size: 18px; cursor: pointer;
       display: flex !important; align-items: center; justify-content: center;
@@ -515,13 +518,13 @@
     }
     .btn-x { background: var(--surface2); color: var(--text2); }
     .btn-ok {
-      background: linear-gradient(135deg, var(--primary), #6366f1);
+      background: linear-gradient(135deg, #a855f7, #22d3ee);
       color: white; box-shadow: 0 4px 14px var(--primary-glow);
     }
 
     .toast {
       position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%);
-      background: linear-gradient(135deg, var(--primary), #6366f1);
+      background: linear-gradient(135deg, #a855f7, #22d3ee);
       color: white; padding: 12px 22px; border-radius: 14px;
       font-size: 13px; font-weight: 600; z-index: 200;
       box-shadow: 0 10px 30px rgba(0,0,0,0.45); max-width: 90%;
@@ -624,6 +627,7 @@
       font-size: 15px;
     }
     body.cli #send {
+      background: linear-gradient(135deg,#a855f7,#22d3ee);
       width: 42px; height: 42px;
       flex-shrink: 0;
     }
@@ -677,7 +681,8 @@
       }
       .mbtn { width: 34px; height: 34px; font-size: 15px; }
       #inp { min-width: 0; flex: 1; padding: 10px 12px; font-size: 14px; }
-      #send { width: 40px; height: 40px; font-size: 16px; }
+      #send {
+      background: linear-gradient(135deg,#a855f7,#22d3ee); width: 40px; height: 40px; font-size: 16px; }
       .bubble {
       white-space: pre-wrap; max-width: 84%; }
     }
