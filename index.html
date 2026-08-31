@@ -1928,9 +1928,18 @@
         };
         div.appendChild(a);
       } else if (url) {
-        const a = document.createElement('a'); a.className = 'file'; a.href = url; a.target = '_blank';
-        a.innerHTML = '<span>📄</span><span>'+esc(texto||'Arquivo')+'</span>';
-        div.appendChild(a);
+        const nomeArq = texto || 'Arquivo';
+        const apk = /\.apk(\?|$)/i.test(url) || /\.apk$/i.test(nomeArq);
+        const box = document.createElement('div'); box.className = 'file';
+        box.innerHTML = '<span>'+(apk?'📦':'📄')+'</span><span>'+esc(nomeArq)+'</span>';
+        const btn = document.createElement('button');
+        btn.textContent = apk ? 'Instalar app' : 'Abrir arquivo';
+        btn.style.cssText = 'margin-top:8px;width:100%;border:0;border-radius:10px;padding:10px;font-weight:700;font-family:inherit;cursor:pointer;background:linear-gradient(135deg,#a855f7,#22d3ee);color:#fff';
+        btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); abrirArquivoChat(url, nomeArq); };
+        box.style.flexDirection = 'column'; box.style.alignItems = 'stretch';
+        const row = document.createElement('div'); row.style.cssText='display:flex;gap:10px;align-items:center';
+        row.innerHTML = box.innerHTML; box.innerHTML=''; box.appendChild(row); box.appendChild(btn);
+        div.appendChild(box);
       }
 
       if (texto && tipo === 'texto') {
@@ -2565,6 +2574,16 @@
       const el = document.querySelector('[data-id="'+id+'"]');
       if (el) el.remove();
       toast('Mensagem apagada');
+    }
+    function abrirArquivoChat(url, nome) {
+      const apk = /\.apk(\?|$)/i.test(url||'') || /\.apk$/i.test(nome||'');
+      if (apk && window.Android && Android.instalar) {
+        try { Android.instalar(url); toast('Abrindo instalador...'); return; } catch(e) {}
+      }
+      const a = document.createElement('a');
+      a.href = url; a.target = '_blank'; a.rel = 'noopener';
+      if (!apk) a.download = nome || 'arquivo';
+      document.body.appendChild(a); a.click(); a.remove();
     }
     function pick(tipo) {
       tipoFile = tipo;
